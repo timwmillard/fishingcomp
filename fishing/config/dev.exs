@@ -2,10 +2,10 @@ import Config
 
 # Configure your database
 config :fishing, Fishing.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: "tim",
+  password: "",
   hostname: "localhost",
-  database: "fishing_dev",
+  database: "fishingcomp",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
