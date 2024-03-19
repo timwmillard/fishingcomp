@@ -1,4 +1,4 @@
--- TODO: Delete this file.  Moved to code folder
+
 
 -- next_competitor_no returns the next available competitor for a given event.
 create or replace function fishing.next_competitor_no(event_id_input bigint)
@@ -37,3 +37,9 @@ begin
 
 end;
 $$;
+create type fishing.catch_review_status as enum (
+    'submitted',
+    'approved',
+    'rejected'
+);
+

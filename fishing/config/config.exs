@@ -7,6 +7,11 @@
 # General application configuration
 import Config
 
+
+config :fishing,
+  club: "murrabitcodchallenge",
+  event: "2024"
+
 config :fishing,
   ecto_repos: [Fishing.Repo]
 
