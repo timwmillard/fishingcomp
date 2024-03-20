@@ -1,3 +1,4 @@
+-- fishingcomp inital schema
 
 create schema if not exists fishing;
 
@@ -7,8 +8,8 @@ create table if not exists fishing.club (
     name text not null,
     slug text not null,
     legal_name text not null default '',
-    logo_url text,
-    custom_domain text,
+    logo_url text not null default '',
+    custom_domain text not null default '',
     billing_address1 text not null default '',
     billing_address2 text not null default '',
     billing_suburb text not null default '',
@@ -41,30 +42,30 @@ create table if not exists fishing.person (
     last_name text not null default '',
     email text not null default '',
     mobile text not null default '',
-    address1 text,
-    address2 text,
-    suburb text,
-    state text,
-    postcode text,
-    meta json,
-    settings json
+    address1 text not null default '',
+    address2 text not null default '',
+    suburb text not null default '',
+    state text not null default '',
+    postcode text not null default '',
+    meta json not null default '{}',
+    settings json not null default '{}'
 );
 
 -- Team
-create table if not exists fishing.team (
+create table if not exists fishing.boat (
     id bigint generated always as identity primary key,
-    team_no text not null default '',
+    boat_no text not null default '', -- TODO: make an int
     name text not null default '',
     boat_rego text not null default '',
     event_id bigint not null references fishing.event(id)
 );
 
-create unique index team_event_id_team_no_key on fishing.team(event_id, team_no) where team_no <> '';
+create unique index boat_event_id_boat_no_key on fishing.boat(event_id, boat_no) where boat_no <> '';
 
 -- Competitor
 create table if not exists fishing.competitor  (
     id bigint generated always as identity primary key,
-    competitor_no text default '',
+    competitor_no text default '', -- TODO: make an int
     first_name text default '',
     last_name text default '',
     email text default '',
@@ -76,21 +77,25 @@ create table if not exists fishing.competitor  (
     state text default '',
     postcode text default '',
     event_id bigint not null references fishing.event(id),
-    team_id bigint references fishing.team(id),
+    boat_id bigint references fishing.boat(id),
     person_id bigint references fishing.person(id)
 );
 
 create unique index competitor_event_id_competitor_no_key on fishing.competitor(event_id, competitor_no) where competitor_no <> '';
 
+create type fishing.species_type as enum (
+    'native',
+    'introduced'
+);
 -- Species
 create table fishing.species (
     id bigint generated always as identity primary key,
     name text not null,
     scientific_name text not null default '',
-    common_names text[],
+    common_names text[] not null default array[]::text[],
     slug text not null,
-    photo_url text,
-    native boolean,
+    photo_url text not null default '',
+    type fishing.species_type not null default 'native',
     unique(name),
     unique(slug)
 );
@@ -100,16 +105,14 @@ create table fishing.catch (
     id bigint generated always as identity primary key,
     competitor_id bigint not null references fishing.competitor(id),
     species_id bigint not null references fishing.species(id),
-    size int not null,
+    size int not null check (size > 0),
     caught_at timestamptz not null,
     bait text not null default '',
     location_name text not null default '',
     location point,
-    photo_url text,
+    photo_url text not null default '',
     event_id bigint not null references fishing.event(id)
 );
 
--- create table club_person (
---   club_id int,
---   person_id int,
--- );
+comment on column fishing.catch.size is 'fish length in millimetres';
+

@@ -5,7 +5,7 @@ from fishing.competitor;
 
 create or replace view boats as
 select *
-from fishing.team;
+from fishing.boat;
 
 create or replace view catches as
 select *

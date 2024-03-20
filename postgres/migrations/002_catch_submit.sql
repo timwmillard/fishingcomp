@@ -36,3 +36,4 @@ create table catch_photo (
     storage_object_id uuid not null, -- references storage.buckets(id),
     is_feature timestamptz
 );
+

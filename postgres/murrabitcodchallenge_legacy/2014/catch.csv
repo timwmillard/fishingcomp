@@ -1,0 +1,42 @@
+"catch_id","fish_type","competitor_id","size","date","time","marshall","bait","location"
+2,"Yellowbelly",244,47.5,"2014-03-15 00:00:00","1899-12-30 11:20:00","Scott McNeil","Worms",5
+3,"Yellowbelly",195,39.5,"2014-03-15 00:00:00","1899-12-30 12:45:00","Scott McNeil","Shrimp",4
+4,"Yellowbelly",63,36.5,"2014-03-15 00:00:00","1899-12-30 15:30:00","Scott McNeil","Yabby",4
+5,"Yellowbelly",150,30,"2014-03-15 00:00:00","1899-12-30 15:50:00","Ryan Edward","Worms",6
+6,"Yellowbelly",111,35,"2014-03-15 00:00:00","1899-12-30 16:17:00","Ryan Edwards","Shrimp",5
+7,"Carp",122,68.5,"2014-03-15 00:00:00","1899-12-30 16:26:00","Ryan Edwards","Chicken",6
+8,"Carp",43,46.5,"2014-03-15 00:00:00","1899-12-30 08:32:00","Nathan Henry","Shrimp",6.5
+9,"Yellowbelly",224,31.5,"2014-03-15 00:00:00","1899-12-30 10:30:00","Travis McMahon","Shrimp",9
+10,"Murray Cod",101,75,"2014-03-15 00:00:00","1899-12-30 11:50:00","Travis McMahon","Grub",9
+11,"Yellowbelly",4,33.5,"2014-03-15 00:00:00","1899-12-30 14:55:00","Brent McKnight","Shrimp",7
+12,"Yellowbelly",124,47,"2014-03-15 00:00:00","1899-12-30 16:14:00","Daniel Nethicoate","Yabby",7
+13,"Yellowbelly",3,40.5,"2014-03-15 00:00:00","1899-12-30 08:56:00","Rhys Neville","Worms",4
+14,"Yellowbelly",302,30,"2014-03-15 00:00:00","1899-12-30 09:03:00","Rhys Neville","Worms",3
+15,"Carp",77,41.5,"2014-03-15 00:00:00","1899-12-30 09:10:00","Rhys Neville","Steak",2
+16,"Yellowbelly",94,30,"2014-03-15 00:00:00","1899-12-30 09:30:00","Rhys Neville","Shrimp",5
+17,"Yellowbelly",255,30,"2014-03-15 00:00:00","1899-12-30 09:45:00","Rhys Neville","Worms/Shrimp",4
+18,"Yellowbelly",204,46,"2014-03-15 00:00:00","1899-12-30 10:46:00","Rhys Neville","Yabby",4
+19,"Carp",272,46,"2014-03-15 00:00:00",,"Kristian Bray","Lure",2
+21,"Yellowbelly",255,39.5,"2014-03-15 00:00:00","1899-12-30 14:30:00","Kristian Bray","Worms/Shrimp",2
+22,"Yellowbelly",302,37,"2014-03-15 00:00:00","1899-12-30 15:00:00","Kristian Bray","Worms/Shrimp",1
+23,"Murray Cod",31,71.5,"2014-03-15 00:00:00","1899-12-30 16:00:00","Peter McDonald","Grub",2
+24,"Yellowbelly",132,47,"2014-03-15 00:00:00","1899-12-30 17:30:00","Peter McDonald","Shrimp",6
+25,"Murray Cod",233,82.5,"2014-03-15 00:00:00","1899-12-30 08:10:00","Sam Harvey","Grub",10
+26,"Yellowbelly",25,31.5,"2014-03-15 00:00:00","1899-12-30 08:30:00","Sam Harvey","Worms/Shrimp",12
+27,"Carp",122,57,"2014-03-15 00:00:00","1899-12-30 08:45:00","Sam Harvey","Shrimp",11
+28,"Yellowbelly",25,32,"2014-03-15 00:00:00","1899-12-30 09:10:00","Sam Harvey",,10
+29,"Yellowbelly",25,30,"2014-03-15 00:00:00","1899-12-30 09:15:00","Sam Harvey",,10
+30,"Yellowbelly",201,32.5,"2014-03-15 00:00:00","1899-12-30 10:00:00","Sam Harvey","Yabby",10
+31,"Yellowbelly",238,38,"2014-03-15 00:00:00","1899-12-30 10:55:00","Sam Harvey","Worms",12
+32,"Yellowbelly",180,32,"2014-03-15 00:00:00","1899-12-30 11:15:00","Sam Harvey",,11
+33,"Murray Cod",167,68,"2014-03-15 00:00:00","1899-12-30 13:46:00","Matthew Webb","Grub",10
+34,"Yellowbelly",36,49,"2014-03-15 00:00:00","1899-12-30 15:29:00","Matthew Webb","Worms",11
+35,"Yellowbelly",25,41.5,"2014-03-15 00:00:00","1899-12-30 17:30:00","Nick Hein","Worms/Shrimp",11
+36,"Yellowbelly",171,39,"2014-03-15 00:00:00","1899-12-30 12:25:00","Matthew Webb","Worms",11
+37,"Yellowbelly",6,37,"2014-03-16 00:00:00","1899-12-30 11:00:00","Sam Harvey","Lure",11
+38,"Yellowbelly",255,30.5,"2014-03-16 00:00:00","1899-12-30 10:00:00","Nathan McKnight","Worms/Shrimp",9
+39,"Carp",22,58,"2014-03-16 00:00:00","1899-12-30 10:30:00","Nathan McKnight","Shrimp",12
+40,"Yellowbelly",170,38,"2014-03-16 00:00:00","1899-12-30 09:15:00","Scott McNeil","Worms/Shrimp",5.5
+41,"Yellowbelly",37,38,"2014-03-16 00:00:00","1899-12-30 09:30:00","Scott McNeil","Shrimp",4
+42,"Murray Cod",260,67,"2014-03-16 00:00:00","1899-12-30 10:40:00","Neil Hopkins","Cheese",7
+43,"Carp",84,69,"2014-03-16 00:00:00","1899-12-30 09:23:00","Daniel Nethicoate","Shrimp",8.5

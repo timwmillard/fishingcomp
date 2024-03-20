@@ -35,7 +35,7 @@ values
 ('2024','Murrabit Cod Challenge 2024',null,null,'Murrabit Recreation Reserve',1);
 
 update fishing.club
-set current_event = 14
+set current_event = 15
 where id = 1;
 
 -- species
@@ -46,3 +46,4 @@ values
 ('Carp','Cyprinus carpio','carp',null, false),
 ('Trout Cod','Maccullochella macquariensis','troutcod',null, false),
 ('Redfin', 'Perca fluviatilis', 'redfin', null, false);
+

@@ -1,0 +1,251 @@
+"competitor_id","boat_id","firstname","surname","address","suburb","state","postcode","phone","fax","mobile","email"
+104,54,"Ken","Richardson","3 Nicholas St","Shepparton","VIC","3630","58221252",,,
+105,54,"Tom","Benqir","3 Nicholas St","Shepparton","VIC","3630","58221252",,,
+106,56,"Wayne","Upton","Shady Acres","Wakool","NSW","2710","58871305","58871305",,"wayval@bigpond.com"
+107,56,"Doug","Green","5 Dequiros St","Wakool","NSW","2710","58871270",,,
+108,57,"Jeff","Parker","PO Box 124","Boort","VIC","3537","54552389",,"0428978895",
+109,57,"Geoff","Rumbold","2175 Boort/Kerang Rd","Leaghur","VIC","3537","54554282",,,
+110,58,"Brad","Wren","33 Henry Lane","Benjeroop","VIC","3579",,,"0427572413",
+111,58,"Scott","McKillop","Kiewa Valley Hwy","Dederang","VIC",,,,"0458289343",
+112,59,"Matthew","Webb","19 Kerang St","Lake Bogo","VIC","3584","50372157",,"0417318768",
+113,59,"Nathan","McKnight","19 Fitzpatrick Rd","Kerang","VIC","3579","03 54572247",,"0427572381",
+114,60,"David","Sinclair","190 Pratt Rd","Kerang","VIC","3579","03 54521030",,"0428921783",
+115,60,"Davis","Sinclair","190 Pratt Rd","Kerang","VIC","3579","03 54521030",,,
+116,61,"Brian","Powell","85 Main St","Koondrook","VIC","3580","54532406",,,
+117,61,"Barry","Stewart","12 Cobwell St","Barham","NSW",,,,,
+118,62,"Josh","Ellis","PO Box 248","Lake Boga","VIC","3585","03 54579191","05 54533148","0427926475","Joshua.Ellis@cma.nsw.gov.au"
+119,62,"Adam","Taylor","PO Box 236","Lake Boga","VIC","3584","03 50372313",,"0409946976","Adam.Taylor@dpi.vic.gov.au"
+120,62,"Paul","McPherson","PO Box 76","Swan Hill","VIC","3585","03 50324990",,"0428503249",
+121,63,"Ricky","Sarre","PO Lake Charm","Lake Charm","VIC","3581","03 54579214",,"0428091295",
+122,63,"Mark","Shepherd","3 Mystic Park Rd","Mystic Park","VIC","3579","03 54579304",,"0447744765",
+123,64,"Richard","Pearson","56 Niemur St","Barham","NSW","2732","03 54533287",,"0427503028",
+124,64,"Chris","Gitsham","2819 Lalbert/Kerang Rd","Lalbert","VIC","3542","03 54573355",,,
+125,65,"Eric","Graco","111 Cobwell St","Barham","NSW",,"54532281",,,
+126,65,"John","Gibson","Punt Rd","Murrabit","VIC","3579","54572268",,,
+127,66,"David","McDonald","Gonn Station","Murrabit","NSW",,,,,
+128,66,"Glenn","Hutchins","1354 Murrabit-Koondrook Rd","Myall","VIC","3579",,,"0407313955",
+129,67,"Dale","Laursen","130 Grigg Rd","Koondrook","VIC","3580","03 54531232",,"0409332015",
+130,67,"Jay","Laursen","59 Noorong St","Barham","NSW","2732",,,"0437532978","birddogj@hotmail.com"
+131,67,"Drew","McDonald","39 Cobwell St","Barham","NSW","2732",,,"0428537163",
+132,68,"Bruce","Heritage","243 Ashwin Rd","Murrabit","VIC","3579","54570300",,"0428862218",
+133,68,"Ron","Chapell","64 Milloo Hall Rd","Tennyson","VIC","3572","54882270",,,
+134,69,"Ray","McNeil","730 Myall Rd","Myall","VIC","3579","54570252",,,
+135,69,"Scott","McNeil","918 Mayll Rd","Myall","VIC","3579","54570304","54570305","0419501126","smcneilelectrical@bigpond.com"
+136,70,"Jacob","Miller","33 Tolls Rd","Cohuna","VIC","3568","54563441",,"0400713045","jacobmiller442@hotmail.com"
+137,70,"Leigh","Williams","16 Heils Rd","Cohuna","VIC","3568","54562177",,"0413706623",
+138,71,"Darcy","Hetherington","1128 Murrabit-West Rd","Benjeroop","VIC","3579","03 54575250","03 54575204","0447187749",
+139,71,"Thomas","Hetherington","1128 Murrabit-West Rd","Benjeroop","VIC","3579","03 54575250","03 54575204","0439063739",
+36,,"Reg","Scott","PO Box 200","Koondrook","VIC","3280","54531244",,,
+37,3,"Ian","Wilkinson","140 Lower Loddon Rd","Kerang","VIC","3579","03 54521515","0428500617",,"shank54@westnet.com.au"
+38,20,"Ron","McKerrow","174 KcKerrow Rd","Benjeroop","VIC","3579","03 54572361","03 54572472",,"rtjamckerrow@cybanet.net.au"
+39,21,"Lachlan","Hurse","8 Gearing St","Maryborough","VIC","3465",,,"0419550384",
+40,21,"Dean","Graco","16 Bryant St","Maryborough","VIC","3465",,,"0409792872","deangraco@hotmail.com"
+41,14,"Brendan","Johnson","24 Majorca Rd","Maryborough","VIC","3465","03 54611650","54604129",,
+42,22,"Matthew","Johnson","30 Logon St","Maryborough","VIC","3465","03 54605227",,,
+43,23,"Russell","Anderson","261 Ashwin Rd","Myall","VIC","3579","03 54570369",,"0427002548",
+44,23,"Martin","Close","282 Betley Rd","Dunolly","VIC","3472",,,"0400249149",
+45,24,"Trevor","McKerrow","49 Carpentor St","Bendigo","VIC","3550",,,,
+46,24,"Terry","Morison","13 Thomas Hardy Drive","Templestone","VIC","3106","03 98415903","03 98415903","0411556649","tkmoris@bigpond.net.au"
+47,25,"Russell","Aston","10 Ellwood Crt","Swan Hill","VIC","3585","03 50330780",,"0407801596","russontan@bigpond.com"
+48,25,"Adrian","Theobald","30 Burgoyne St","Kerang","VIC","3579","03 54522282",,"0439522280",
+49,26,"David","Carter","46 Fink St","Maryborough","VIC","3465",,,"0488408400",
+50,26,"Daryl","Carter","49 Argyle Road","Maryborough","VIC","3465","03 54613741",,"0428613741",
+51,27,"Ian","Gillingham","6 Woodlea Close","Strathfieldsaye","VIC","3551","03 54393350",,"0419343609","igillingham@powercor.com.au"
+52,27,"Hayden","Gillingham","6 Woodlea Close","Starthfieldsaye","VIC","3551","03 54393350",,"0458449884",
+53,27,"Linsay","Hogg","293 Flood Lane","Kerang","VIC","3579","03 54579285",,"0429336537",
+54,27,"Jordan","Hogg","293 Flood Lane","Kerang","VIC","3579","03 54579285",,"0429336537",
+55,28,"Jim","McLeish","7 Pyramid Cres","Kerang","VIC","3579","03 54503733",,"0429346418",
+56,28,"Bryce","McLeish","7 Pyramid Cres","Kerang","VIC","3579","03 54503733",,,
+57,29,"Darna","Fowler","69 Murray St","Kerang","VIC","3579","03 54522191","03 54522191","0409439235","dkdisplays@bigpond.com"
+58,29,"Gary","Fowler","69 Murray St","Kerang","VIC","3579","03 54522191","03 54522191",,
+59,30,"Craig","Ross","1 Lucas Cr","Lockington","VIC","3563","03 54862551",,"0428862551","craig@awma.au.com"
+60,30,"Desmond","Rankin","Pannoo Rd","Lockington","VIC","3563","03 54862411",,"0429950630",
+61,31,"Stephen","O'Donoghue","277 Murrabit West Rd","Murrabit","VIC","3579","03 54572400",,"0418577238","stepheno@awma.au.com"
+62,31,"Leigh","Forster","92 Victoria St","Pyramid Hill","VIC","3575","03 54557554",,"0427847033",
+63,32,"David","Field","179 Walters Rd","Murrabit","VIC","3579","03 54572332",,,
+64,32,"Neville","Field","262 High St","Avoca","VIC","3467","03 54653316",,,
+65,32,"Wayne","Holland","56 High St","Avoca","VIC","3467","03 54653712",,,
+66,33,"Ron","Morton","3 Burke St","Kerang","VIC","3579","03 54522305",,"0407346713",
+67,33,"Brian","Helsham","P.O Box 12","Lake Charm","VIC","3581","03 54579263",,"0427579263",
+68,34,"Kevin","Spiteri","33 Bakewell St","Bendigo","VIC","3550","03 54443503",,"0438428714","kkspiteri@hotmail.com"
+69,35,"Nigel","McNeil","13 Watson Rd","Myall","VIC","3579","03 54570201","03 54570201","0427842475",
+70,35,"Brenton","Shiells","23 Maiden Smith Drive","Moama","NSW","2731","03 54801923",,"0409854061","brentonshiells@hotmail.com"
+1,1,"Ken","Radcliffe","31 Lyall Ave","Kerang","VIC","3579","54503665",,"0447447988",
+2,2,"Graham","Rowland","40 Shadforth St","Kerang","VIC","3579","54503153",,"0429372534","Jader2@bigpond.com"
+3,3,"Jeremy","Dean","16 Dunlop St","Kerang","VIC","3579","54521856","54522277","0429194023","jemkris@westnet.com.au"
+4,4,"Jim","Danson","174 Dunbar Rd","Murrabit","VIC","3579","54572367","54572367",,
+5,4,"Paul","Danson","174 Dunbar Rd","Murrabit","VIC","3579","54572367","54572367",,
+6,5,"Doug","Hawke","41 Murray St","Kerang","VIC","3579","03 54522121",,,
+7,5,"J.R.","Curtis","249 Westblade Ave","Kerang","VIC","3579","54522148",,,
+8,6,"David","Waddell","65 Staton St","Wallan East","VIC","3756",,"(03) 94576411","0400669002","frog.1974@hotmail.com"
+9,7,"Warwick","McDonald","P.O. Box 107","Swan Hill","VIC","3585","50324722",,"0429840441",
+10,7,"Kevin","Mitchell","Mungo St","Balranald","NSW",,"50201478",,,
+11,7,"Peter","Lawlor",,"Balranald","NSW",,,,,
+12,3,"Christopher","Clough","81 Wyndham St","Kerang","VIC","3579","(03) 54503126",,"0438529539",
+13,8,"David John","Danson","1860 Koondrook Rd","Murrabit","VIC","3579","54572266","54572266","0428865405",
+14,8,"Glenis","Danson","1860 Koondrook Rd","Murrabit","VIC","3579","54572266","54572266","0428865405",
+15,9,"Terry","Stacey","PO Box 182","Kerang","VIC","3579","0354522205","54503377","0428503377",
+16,9,"Chris","Wren","16 Teal Drive","Mildura","VIC","3502",,,"0419036396",
+17,9,"Mick","Coobs","1 Shannon Rd","Kerang","VIC","3579","0354521650",,,
+18,10,"Garry","Wilkinson","188 Westblade Ave","Kerang","VIC","3579","03 54522723",,"0458276587",
+19,10,"Judy","Wilkinson","188 Westblade Ave","Kerang","VIC","3579","03 54522723",,"0429439024","wilkinson.judith.jw@edumail.vic.gov.au"
+20,11,"Ben","Kelly","37 Carbine St","Kerang","VIC","3579","03 54522481","03 54522052","0408545220","signsanddesigns@westnet.com.au"
+21,11,"Josh","Kelly","72 Scown Rd","Tresco","VIC","3583","03 50372784","03 50372784","0400036693",
+22,12,"Scott","Wishart","P.O. Box 106","Kerang","VIC","3579","54521963","54521964","0407628912",
+23,12,"Michael","Greer","91 Marne St","Kerang","VIC","3579","54503860","0428565130",,
+24,12,"Dean","Pinniger","39 Albert St","Kerang","VIC","3579","54503831","54521849","0418366991","dean.annie@bigpond.com"
+25,13,"Brenden","Fletcher","4 Sweeney St","Bendigo","VIC","3550","03 54528853",,"0428428853","b.fletcher@latrobe.edu.au"
+26,13,"Dale","Hartley","232 Hannah Lane","Gonn Crossing","VIC","3579","54572336",,"0429173889","dalehartley@bigpond.com"
+27,14,"Peter","Shay","116 Queens Ave","Maryborough","VIC","3465","54512790",,"0427612790",
+28,14,"Len","Johnson","24 Majorca Rd","Maryborough","VIC","3465","54613482",,,
+29,15,"Barry","Watts","41 King St","Boort","VIC","3537","54552139","54552139","0428652021","wattzy@internode.on.net"
+30,15,"Ron","Hird","29 Kiniry St","Boort","VIC","3537","54552076",,"0429652076",
+31,16,"Wesley","Brennan","61 Main St","Koondrook","VIC","3580",,,"0428637696",
+32,16,"John","Brennan","61 Main St","Koondrook","VIC","3580","5431505",,,
+33,98,"Stuart","Hansen","47 Scoresby St","Kerang","VIC","3579",,,"0437451909",
+34,18,"Jeff","Gillingham","PO Box 19","Lake Charm","VIC","3581",,,"0428500702",
+35,18,"Peter","Ladgrove","71 Cullen","Kerang","VIC","3579","54522724",,,
+71,36,"Col","Nethercote","47 Boundary St","Kerang","VIC","3579",,,"0428522744",
+72,36,"David","Clue","22 Muir Avenue","Kerang","VIC","3579",,,"0411425699","dwclue@hotmail.com"
+73,37,"Malcolm","Borchard","2 Johnstone St","Bendigo","VIC","3550","03 54421802",,"0418349368","borchard4@hotmail.com"
+74,37,"Garry","Borchard","391 Mead Rd","Cohuna","VIC","3579","03 54568487",,"0409336184","boreri@bigbond.com"
+75,38,"Michael","Woolhouse","1692 Koondrook/Kerang Rd","Kerang","VIC","3579","03 54532952","03 54532952","0400305136",
+76,38,"Christopher","McKnight","119 Cadusch Rd","Kerang","VIC","3579","03 54504078","54572388","0428392000",
+77,39,"Jim","Staggard","39 Wilmington Ave","Hoppers Crossing","VIC","3029","03 97487813",,"0488424950","staggs@dodo.com.au"
+78,39,"Leigh","Tonkin","5 Finch St","Castlemaine","VIC","3450",,,"0428102909",
+79,39,"Herbert","Staggard","20 Saint St","Castlemaine","VIC","3450","03 54724905",,"0421257879",
+80,40,"Darryl","McKenzie","18 Kerang Rd","Quambatook","VIC","3540","03 54571204",,"0429809743",
+81,40,"Shane","Hamilyn-Harris",,"Quambatook","VIC","3540","03 54571393",,,
+82,41,"William","Hollard","4 Station St","Koondrook","VIC","3580","54532786",,,
+83,117,"Peter","McDonald","Rosedale Rd","Myall","VIC","3579",,,,
+84,43,"Jack","Challis","370 Little Murray Rd","Benjeroop","VIC","3579","54575272",,"0428570309",
+85,43,"Neil","Teasdale",,"Murrabit",,,"54572450",,,"joyard20@bigpond.com"
+86,44,"Michael","Cook","46 Browning Ave","Murrabit","VIC","3579","54572256",,,
+87,45,"Kevin","Sambrooks","15 Airport Rd","Kerang","VIC","3579",,,"0429336311",
+88,45,"Tony","Laughlin","15 Borough Dr","Kerang","VIC","3579","03 54521269",,,"tonylaughlin@bigpond.com"
+89,46,"Adrian","Pangrazio","50 Hannah Lane","Gonn Crossing","VIC","3579","03 54572229","03 54572459","0488374552",
+90,47,"Damian","Hucker","59 King Edward St","Cohuna","VIC","3568","54564748",,"0428384628",
+91,47,"Stephen","Lake","1212 Koroop Rd","Kerang","VIC","3579","03 54569271","03 54569271","0407563958",
+92,47,"Josh","Ryland","56 Market St","Cohuna","VIC","3568",,,"0428721660",
+93,49,"Ray","Teasdale","267 Lower Loddon Rd","Kerang","VIC","3579","54522867",,"0428367577",
+94,49,"Keith","Pertgel","543 Lower Loddon Rd","Kerang","VIC","3579","54522420",,,
+95,50,"Mark","Henderson","85 Victoria St","Kerang","VIC","3579","54521511","54521522","0408764394","iqelec@bigpond.net.au"
+96,50,"Deaniee","Henderson","85 Victoria St","Kerang","VIC","3579","54521511","54521522","0408764394","iqelec@bigpond.net.au"
+97,51,"Tony","Cartwright","c/o Murrabit PO","Murrabit","VIC","3579","54572204",,,
+98,52,"Brian","Wishart","19 Cedmar Ave","Geelong","VIC","3216","03 54430642","52430642","0425762158",
+99,52,"David","Wishart","4 Viola Rd","Huntly","VIC","3551","03 54488628","03 54488628","0448700320",
+100,53,"Alan","Edwards","17 Garvey Rd","Kerang","VIC","3579","03 54522084",,"048218775",
+101,53,"John","Edwards","17 Garvey Rd","Kerang","VIC","3579","03 54522084",,"0419775412",
+102,54,"Ian","Lanyon","479 Parkers Rd","Boort","VIC","3537","54554237","54554305","0428554237","marilyn@simplytomatoes.com.au"
+103,54,"Malcom","Webster","88 High St","Swan Hill","VIC","3585","50322398",,"0408351641",
+174,90,"Linday","Schultz","177 Morton Lane","Benjeroop","VIC","3579","54575233","54575227","0408509601","schultz1@bordernet.com.au"
+175,43,"Guy","Taylor","Hulke Rd","Kerang","VIC","3579","0427533260",,,
+176,91,"Bill","Hazen",,"Murrabit","VIC","3579",,,"54572213",
+177,92,"Terry","Treacy",,,,,,,,
+178,92,"Kev","Treacy",,,,,,,,
+179,92,"Billy","Hogg",,,,,,,,
+180,134,"Chris","Friswell","10 Deakin Drive","Bendigo","VIC","3550",,,"0400576780",
+181,134,"Nick","Hein","RSD 245","Myall","VIC","3579",,,"0409533153",
+182,94,"Danny","Pickett","2/16 Peppertree Gv","Strathdale","VIC","3550",,,"0422225256","dannypicket@live.com.au"
+183,94,"Nick","Woods","2/16 Peppertree Gv","Strathdale","VIC","3550",,,"0438835016",
+184,95,"Glen","Solomano","73 Eaglehawlk Rd","Bendigo","VIC",,"54440985",,"0418510758",
+185,95,"Luke","Solomano","73 Eaglehawlk Rd","Bendigo","VIC",,"54440985",,,
+186,73,"Mark","Barby","25 Victoria St","Pyramid Hill","VIC","3465","54612153",,"0400964930",
+187,97,"Dean","Collicoat","76 Burgoine St","Bendigo","VIC","3550",,,,
+188,97,"Mick","Dayken","80 Burgoine St","Bendigo","VIC","3550",,,,
+189,98,"Brian","Goble","222 Koondrook West Rd","Koondrook","VIC","3580","54533845",,"04199853116","btgoble@westnet.com.au"
+190,99,"Phil","Mathieson","5 Vaughan St","Kerang","VIC","3579","54522818",,"0429303995",
+191,99,"Sharryn","Mathieson","5 Vaughan St","Kerang","VIC","3579","54522818",,"0428878067",
+192,100,"Garry","Bath","77 Honeysuckle St","Bendigo","VIC","3550","54435920",,"0438086290",
+193,100,"David","Mathieson","25 Cherry Tree Lane","Big Hill","VIC","3555","54478649",,,
+194,101,"Shane","Brown","5 Mellor Grove","Swan Hill","VIC","3585","50329598",,"0408303367","brown.s.4@hotmail.com"
+195,101,"Ben","Pearse","Yarrowee, Cunninyeuk","Swan Hill","VIC","3585","50343500",,"0429863225","spearse@bordernet.com.au"
+196,93,"Shane","Hamilton","31 Cassandra Crs","Epson","VIC","3551","03 54484185",,"0422080045",
+197,93,"Allan","Drechsler","3/32 Joseph St","Bendigo","VIC","3550",,,"0418304418","adrechsler@powercor.com.au"
+198,102,"Brandon","McKenna","1-105 Neale St, Flora Hill","Bendigo","VIC","3550",,,"0400233844",
+199,102,"Matthew","McKenna","1-105 Neale St, Flora Hill","Bendigo","VIC","3550",,,"0413395772",
+200,103,"Ross","O'Donoughue",,"Koondrook","VIC",,,,"0427509182",
+201,103,"Graham","Dalton",,,,,,,,
+202,104,"Brad","Hein","393 Myall Rd","Myall","VIC","3579",,,"0409570241","skipp_04@hotmail.com"
+203,104,"Allan","Friswell",,,,,,,,
+204,105,"Wayne","Peace","96 King Edward St","Cohuna","VIC","3568","03 54562100",,"0429387261",
+205,106,"Paul","Madden","787 River Rd","Murrabit","VIC","3579","54575206",,"0408596785",
+206,106,"Ron","Sharples","Chamsers Rd","Altonn",,,"03 93995799",,"0419328033",
+207,106,"Phil","Dalley","Ashwin Lane","Myall","VIC","3579","54570285",,,
+208,106,"John","Ficken","Merran Downs","Murrabit","VIC","3579","54572214",,,
+209,107,"Greg","Dickson",,,,,,,"0439308832",
+210,107,"Peter","Morris","Murrabit St","Kerang","VIC","3579","54522111",,,
+211,108,"Josh","Bray","73 Nolan St","Kerang","VIC","3579","03 54522042","54572377","0428994841","josh@brentmcknight.com.au"
+212,109,"Anothny","Lake","53 Marne St","Kerang","VIC","3579","H: 03 54504005","03 5452229","W: 03 54522299","kerangeb@bigpond.net.au"
+140,71,"Khane","McNeil","128 Westblade Rd","Kerang","VIC","3579","03 54570282","03 54570363","0488965952","mcblades@dragnet.com"
+141,22,"Bill","Dakis","20 Captin Cook Close","Skye","VIC",,"97828123",,,
+142,73,"Brendan","Tatchell","40 Poole St","Maryborough","VIC","3465","54605080","54605080","0409855431","walkerbbi@dodo.com.au"
+143,74,"Nathan","Henry","129 Victoria St","Kerang","VIC","3579","54522461",,"0407362408","nats08@gmail.com"
+144,74,"Greg","Henry","324 Murrabit West Rd","Gonn Crossing","VIC","3579","54572233",,"0418511953","greghenry5@bigpond.com.au"
+145,133,"Wayne","Neville","53 Nugget St","Kerang","VIC","3579","54521125",,"0407557335","tigerev@hotmail.com"
+146,75,"Peter","McCann","2 Danson St","Murrabit","VIC","3579","54572222",,"0402358501",
+147,75,"Vince","Maher","41 Gonn Avenue","Murrabit","VIC","3579","54572220",,"0408596703",
+148,76,"Ricky","Maher","388 Murrabit West Rd","Murrabit","VIC","3579",,,"0408596704",
+149,76,"Greg","Maher","Gonn Ave","Murrabit","VIC","3579","54572293",,"0408500988",
+150,77,"Wes","Danson","PO Box 347","Barham","NSW",,,,"0447843176",
+151,78,"Darren","Keath","RMB 2034 Middleton Rd","Lockington","VIC","3563","54868230",,"0427280465","paulinekeath@bigpond.com.au"
+152,78,"Andrew","Monaghan","16 Archibald St","Lockington","VIC","3563","54862540",,"0428862540",
+153,79,"Daniel","Buckland","1 Prince St","Creswick","VIC","3363",,,"0408657668",
+154,79,"Josh","Dummelow","22 Cambridge St","Creswick","VIC","3363",,,"0408796525",
+155,79,"Jason","Dummelow","22 Cambridge St","Creswick","VIC","3363","53452320",,"0408796525",
+156,79,"Tom","Dummelow","22 Cambridge St","Creswick","VIC","3363","53452320",,"0408796525",
+157,80,"Dennis","Greenwood","3 Airport Rd","Kerang","VIC","3579","03 54503711","03 54503722","0439503723","fordkerang@arnoldtgreenwood.com.au"
+158,81,"Phil","Price","Murrabit St",,,,,,,
+159,82,"Andrew","Leahy","179 Murrabit West Rd","Murrabit","VIC","3579","54572368","54572466","0408500875","asurv@bigpond.com"
+160,82,"Steve","Hawken","Little Murray Rd","Benjeroop","VIC","3579","03 54575200",,,
+161,83,"Nigel","Greenaway","2 Smith St","St Arnaud","VIC","3478","03 54952961","03 54998247","0409424678",
+162,83,"Cory","Hope","229 Moonambel/Natte Rd","Moonambel","VIC","3478","03 54677225",,"0400693304",
+163,84,"Kevin","Burt","34 Ninth St","Kerang","VIC","3579","54503141",,"0407319414","Kelvin.Burt@bigpond.com"
+164,85,"Tim","Coffey","18 Watson St","Birchip","VIC","3483",,,,
+165,85,"Matthew","Lockhary","Speewa Rd","Speewa RSB","NSW","3585",,,"0439376522",
+166,86,"Glen","King-Gee","1142 Koondrook/Murrabit Rd","Myall","VIC","3579","03 54570224","03 54570224","0428570224","grkinggee@bigpond.com"
+167,86,"David","Millar","1006 Hinkson Rd","Kerang","VIC","3579","03 54570281","03 54570281","0409822199","ja_jdmillar@hotmail.com"
+168,1,"Wayne","O'Neill","138 Victoria St","Kerang","VIC","3579","(03) 5450 3533",,"0458291810",
+169,87,"Danny","Nethercote","1262 Lake Charm Rd","Benjeroop","VIC","3579","54575246","54575236","0439396670","rabjen@bigpond.com.au"
+170,88,"Greg","Bagg","2420 Hamilton Hwy","Inverleigh","VIC",,"52651698","52651697","0438525032","gregg.bagg@bigpond.com.au"
+171,88,"Tony","Hopwood","1 Manna Gum Drive","Torquay","VIC","3228","52612081",,,
+172,88,"Bradley","Hopwood","10 Elaine Place","Leopold","VIC","3224",,,"0410617787",
+173,88,"Dillion","Walter","21 Maroboora Cres","Clifton Spring","VIC","3222",,,"0438746513",
+213,109,"Keith","Lake","68 Boundary St","Kerang","VIC","3579","03 54504442",,,
+214,110,"Colin","Delamare","7 Leng St","Kerang","VIC","3579","0418100694",,,
+215,110,"Heather","Delamare","7 Leng St","Kerang","VIC","3579","0401035670",,,
+216,84,"Jack","Dyer",,,,,,,,
+217,111,"Justin","Webster",,,,,,,,
+218,111,"Chris","Murrell",,,,,,,,
+219,112,"David","Stubbs","3 Mokana St","Kerang","VIC","3579","54522525",,"0407506002",
+220,112,"Kevin","Moon","44 Airport Rd","Kerang","VIC","3579","54522377",,,
+221,56,"Peter","Main","RMB 316","Deniliquin","NSW","2710","03 58872213","03 58872255","0429439377","pjj.main@bigpond.com"
+222,114,"Jamie","Semmler","44 Wells Bridge Rd","Benjeroop","VIC","3579","54575225","54575225","0411585716","semmcofarms@westnet.com.au"
+223,114,"Justin","Faint","c/- Jamie Semmler",,,,,,,
+224,81,"Colin","McCarthy","353 Summerwayes Rd","Kerang","VIC","3579",,,"0427040283","lintlypark@bordernet.com.au"
+225,115,"Andrew","Gray",,,,,,,,
+226,115,"Jonny","Hogg",,,,,,,,
+227,115,"Steve","Hicks",,,,,,,,
+228,116,"Brendan","Keighran","24 Murrabit St","Kerang","VIC","3579",,,"0422334498",
+229,117,"Dean","Atwell",,,,,,,,
+230,133,"Rhys","Neville","332 Torquay Rd","Grovedale","VIC","3216","0448345854",,,"new_53@hotmail.com"
+231,119,"Jack","Kennedy",,,,,,,,
+232,119,"Russel","Peske",,,,,,,,
+233,120,"Reed","Wills",,,,,,,,
+234,121,"Matt","Micalleff",,,,,,,,
+235,108,"Kristian","Bray",,,,,,,,
+236,108,"Scott","Bray","'Yarramundi'","Barooga","VIC",,,"57458285","0429193506",
+237,124,"Stewart","Mason",,,,,,,,
+238,125,"Neil","Hopkins","Whiter St","Murrabit","VIC","3579","54572428",,,"hopkings.neil.r@edumail.vic.gov.au"
+239,125,"Nathan","McCelland",,,,,,,,
+240,126,"Sam","Catena","112 Coreen St","Jerilerie","NSW","2716","03 58861386","03 58861613","0429861329",
+241,126,"Zak","Nugent","Oaklands Rd","Jerilerie","NSW","2716",,,"0297474500",
+242,117,"Mark","Robinson",,,,,,,,
+243,128,"Colin","Thompson","673 River Rd","Murrabit","VIC","3579","54572225",,,
+244,128,"Kyle","Hodges","McCol Crt","Kerang","VIC","3579",,,,
+245,129,"Ashley","Trigg",,"Wakool","NSW",,,,,
+246,129,"Melissa","Thompson",,"Wakool","NSW",,,,,
+247,131,"Ryan","Lancaster",,,,,,,,
+248,131,"Kent","McNeil","1/16 Golden Av","Bonbeach","VIC","3196",,"03 87957970","0447522262","Kent@lokaway.net"
+249,131,"Kayne","Lancaster","735 Peel St","Albury","VIC","2640",,,"0427986605","kaynelancaster@hotmail.com"
+250,133,"Teneil","Neville","53 Nugget St","Kerang","VIC","3579","03 54521125",,"0437940568","teneil50@hotmail.com"

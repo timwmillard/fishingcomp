@@ -1,5 +1,6 @@
 
 
+drop function fishing.next_competitor_no;
 -- next_competitor_no returns the next available competitor for a given event.
 create or replace function fishing.next_competitor_no(event_id_input bigint)
 returns int
@@ -20,6 +21,7 @@ begin
 end;
 $$;
 
+drop function fishing.current_event;
 -- current_event returns the current event for the give club.
 create or replace function fishing.current_event(club_input text)
 returns int
@@ -37,9 +39,4 @@ begin
 
 end;
 $$;
-create type fishing.catch_review_status as enum (
-    'submitted',
-    'approved',
-    'rejected'
-);
 

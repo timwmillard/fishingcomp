@@ -1,0 +1,323 @@
+"competitor_id","boat_id","firstname","surname","address","suburb","state","postcode","phone","fax","mobile","email","paid","junior"
+1,8,"Tim","Millard","75 Cassidy Lane","Koondrook","VIC","3580","03 54533717",,"0417346431","timwmillard@gmail.com",TRUE,FALSE
+2,72,"Danny","Nethercote","1093 Lake Charm Road","Benjeroop","VIC","3579","03 54575257",,"0439396670","rabjen1@bigpond.com",TRUE,FALSE
+3,45,"Graham","Rowland","20 Prominence Bvd","tarneiy","VIC","3029",,,"0429372534","growland2009@hotmail.com",TRUE,FALSE
+4,89,"Gary","Gilbert","5 Lisa Place","Wallan","VIC","3756",,,"0458230615","g.a.gilbert@bigpond.com",TRUE,FALSE
+5,8,"Nick","Hein","346 Guilmartin Rd","Myall","VIC","3579","0409533153",,,"nhe40472@bigpond.net.au",TRUE,FALSE
+6,34,"Michael","Daykin","Po box 74","Huntly","VIC","3551",,,"0407849413","captivationpark@y7mail.com",TRUE,FALSE
+7,84,"Colin","Stubbs","18 Moore Street","Hamilton","VIC","3300",,,"0428528614","coldawn1@bigpond.com",TRUE,FALSE
+8,84,"peter","Crane","Kent Road","Hamilton","VIC","3300","555725194",,,"coldawn1@bigpond.com",TRUE,FALSE
+9,4,"Stephen","Patterson","28 Bayshore Avenue","Clifton Springs","VIC","3222",,,"0406239166","sjpatterson007@bigpond.com",TRUE,FALSE
+10,91,"Jarrod","Ayres","34 Montgomery Crescent","White Hills","VIC","3550","0437056456",,,"jayres@powercor.com.au",TRUE,FALSE
+11,37,"Todd","Fawcett","52 Rohs Rd","Bendigo","VIC","3550","0421345800",,"0409 590 963","todd@riverinabelting.com",TRUE,FALSE
+12,109,"Tim","Broad","34 Pidgeon Gully Road","Maryborough","VIC","3465","0354612375",,"0427301119","sharon.broad@bigpond.com",TRUE,FALSE
+13,27,"Rowan","Mckerrow","174 McKerrow Rd","Benjeroop","VIC","3579",,,"0427579202","rowantracey@bigpond.com",TRUE,FALSE
+14,74,"Brett","Barrett","373 High Street","Melton","VIC","3337","0397320000",,"0400119911","brett.barrett@raywhite.com",TRUE,FALSE
+15,74,"Paul","Holod","13 Grieve Pde","Altona","VIC","3018",,,"0402561741","paulholod@live.com.au",TRUE,FALSE
+16,74,"Daniel","Mansueto","2 Mayfield Gr","Altona Meadows","VIC","3028",,,"0422065769","danielmansueto@hotmail.com",TRUE,FALSE
+17,21,"Glenn","Fitt","18 Woodend Ave","Eynesbury ","VIC","3338",,,"0408522416","fitty1@live.com.au",TRUE,FALSE
+18,21,"Jason","Cooper","58 Lomandra Drive ","Teesdale","VIC","3328",,,"0411394504","fitty1@live.com.au",TRUE,FALSE
+19,9,"Michael","Woods","1 Bayfield ","Eltham","VIC","3095",,,"0427184794","mick@hookem.com.au",TRUE,FALSE
+20,9,"Jim","Anderson","18 Strathearn Drive ","Sunbury","VIC","3429",,,"0414 552 753","jim@anderwoods.com.au",TRUE,FALSE
+21,9,"Bruce","Dunstan","1 Nyora Road","Eltham","VIC","3095",,,"0413949027","mick@hookem.com.au",TRUE,FALSE
+22,9,"Robert","Munter","37 Cuthbert Street","Niddrie","VIC","3042",,,"0409 350 175","munterr@gmail.com",TRUE,FALSE
+23,9,"Tim","Woods","1 Bayfield Drive","Eltham","VIC","3095",,,"0432347604","timwoodscarpentry@hotmail.com",TRUE,FALSE
+24,76,"Barry","Tanner","2730 Bacchus Marsh/Balliang Road","Bacchus Marsh","VIC","3340","+61400222824",,"+61400222824","barrytanner1@bigpond.com",TRUE,FALSE
+25,14,"Lachy","Pearson","28 Valonia Drive","Eltham","VIC","3095",,,"0407567076","lachy.pearson@gmail.com",TRUE,FALSE
+26,14,"Andy","Brazzale","14 Echidna Road","Eltham","VIC","3095",,,"0401796756","braz_23@hotmail.com",TRUE,FALSE
+27,52,"Craig","Weston","21 Amron St","Chelsea Heights","VIC","3196",,,"0409697063","craig-weston@hotmail.com",TRUE,FALSE
+28,56,"Peter","Parker","146 Hannah Lane","Murrabit","VIC","3579",,,"0427880949","parkerjkx1@bigpond.com",TRUE,FALSE
+29,56,"Rob","McFarlane","18 Lalbert Road","Lake Boga","VIC","3584",,,"0428557450","mcfarlane.robert@bigpond.com.au",TRUE,FALSE
+30,91,"Brandon","McKenna","37 Emmett","Golden Square","VIC","3555",,,"0400774165","brandonmckenna88@gmail.com",TRUE,FALSE
+31,91,"Matthew","Mckenna","37 Emmett Street","Golden Square","VIC","3555",,,,"brandonmckenna88@gmail.com",TRUE,FALSE
+32,65,"Dave","Mooney","13 Vistarini Road","Murrabit West","VIC","3579",,,"0427572411","davidmooney2@bigpond.com",TRUE,FALSE
+33,35,"Geoff","Dwyer","Po box 211","Rochester","VIC","3561","54845366",,"0428845366","gr.dwyer@bigpond.com",TRUE,FALSE
+34,35,"Rhonda","Dwyer","Po box 211","Roch","VIC","3561","54845366",,"0428845369","gr.dwyer@bigpond.com",TRUE,FALSE
+35,35,"Charlie","Anderson","Po box 211","Rochester","VIC","3561","54845366",,"0407558387","gr.dwyer@bigpond.com",TRUE,FALSE
+36,35,"Lewis","Dwyer","Po box 211","Rochester","VIC","3561","54845366",,"0428845368","gr.dwyer@bigpond.com",TRUE,FALSE
+37,35,"Jess","Dwyer","Po box 211","Rochester","VIC","3561","54845366",,"0428845367","gr.dwyer@bigpond.com",TRUE,FALSE
+38,35,"Ryley","Mills","Po box 211","Rochester","VIC","3561","54845366",,"0474277920","rilly_10@hotmail.com",TRUE,FALSE
+39,3,"Jess","Bluck","18 Hadley Drive","Wallan","VIC","3756","0424285448",,"0424285448","jessica_bluck@yahoo.com",TRUE,FALSE
+40,3,"Jason","Hobbs","32 Rowes Rd","Werribee","VIC","3030",,,"0422206726",,TRUE,FALSE
+41,5,"Justin","Anderson","79 Mitchells Lane","Sunbury","VIC","3429",,,"0451514211","melissaanderson2014@gmail.com",TRUE,FALSE
+42,5,"Ashley","Skrypec","15 Blyton Crescent","Sunbury","VIC","3429","0400724434",,,"melissaanderson2014@gmail.com",TRUE,FALSE
+43,54,"Jarrod","Paterson","10 Medina Road","Keilor Downs","VIC","3038","0427939778",,"0427939778","jarrod.p@hotmail.com",TRUE,FALSE
+44,54,"Benjamin","Alexander","19 Wolviston Avenue","Hillside","VIC","3037","0402110936",,"0402110936","benjamin_alexander@hotmail.com",TRUE,FALSE
+45,66,"Dale","Stacey","56 Urquhart St","Woodend","VIC","3442",,,"0402054175","dale.stacey@elgas.com.au",TRUE,FALSE
+46,66,"John","Fuller","24 Tennyson Street","Woodend","VIC","3442",,,"0427529059","dale.stacey@elgas.com.au",TRUE,FALSE
+47,58,"Andrew","Cook","7 Millbank Street","Bacchus Marsh","VIC","3340","0466661654",,"0466661654","acookcarpentry@gmail.com",TRUE,FALSE
+48,58,"Nathan","Cook","7 Millbank Street","Bacchus Marsh","VIC","3340","0434717212",,"0434717212","nlccarpentry@gmail.com",TRUE,FALSE
+49,37,"Zac","McGrath","52 Rohs Road","Bendigo","VIC","3550","0421345800",,"0409 590 963","todd@riverinabelting.com",TRUE,FALSE
+50,36,"Daniel","Perkins","17 julier cres ","hoppers crossing","VIC","3029","97496016",,"0403572711","dperkins@y7mail.com",TRUE,FALSE
+51,36,"Dale","Perkins","17 Julier Cres","Hoppers Crossing","VIC","3029","97496016",,"0403572711","dperkins@y7mail.com",TRUE,FALSE
+52,36,"Christopher","Perkins","17 Julier Crescent","Hoppers Crossing","VIC","3029","97496016",,"0403572711","dperkins@y7mail.com",TRUE,FALSE
+53,36,"Shane","Younger","17 Julier Cres","Hoppers Crossing","VIC","3029","97496016",,"0403572711","dperkins@y7mail.com",TRUE,FALSE
+54,62,"Wayne","Hunt","449 Echuca Nanneella Rd","Nanneella","VIC","3561","0354845294",,"0427341050","waynehunt3@bigpond.com",TRUE,FALSE
+55,62,"Gabrielle","Hunt","449 Echuca Nanneella Rd","Nanneella","VIC","3561","0354845294",,"0429845294","waynehunt3@bigpond.com",TRUE,FALSE
+56,69,"Shane","Stacey","PO Box 1035","Echuca","VIC","3564","0457779695",,"0457779695","shanestacey@hotmail.com",TRUE,FALSE
+57,67,"Craig","McCluskey","23 Sorrel court","Baranduda","VIC","3691","+61409503244",,"+61409503244","cmccluskey@baxters.com.au",TRUE,FALSE
+58,67,"Garry","McCluskey","21 Wellington Street","Kerang","VIC","3579","0354522485",,"0438522705","mccluskeyssc@bigpond.com",TRUE,FALSE
+59,20,"Bruce","Francis","21 Eureka Road","Diggers Rest","VIC","3427",,,"0432451484","shadow4@dodo.com.au",TRUE,FALSE
+60,45,"Michael","Morgan","18 Heysen Drive","Sunbury","VIC","3429",,,,"shadow4@dodo.com.au",TRUE,FALSE
+61,42,"David","Crook","24 Sorbonne Drive","Sunbury","VIC","3429",,,"0402055121","dave.crook@hotmail.com",TRUE,FALSE
+62,42,"Michael","Buckman","2 Dunne Road","Bullengarook","VIC","3437",,,"0475896303","gwsbuckman@bigpond.com",TRUE,FALSE
+63,23,"Drew","Gray","579 Midland Highway","Huntly","VIC","3556","0354488330",,"0404061347","winnie_ang@hotmail.com",TRUE,FALSE
+64,23,"Cowan","Jack","579 Midland Highway","Huntly","VIC","3551","0354488330",,"0404061347","winnie_ang@hotmail.com",TRUE,FALSE
+65,95,"Snow","Danson",,,"VIC",,,,,,TRUE,FALSE
+66,132,"Wesley","Danson",,,"VIC",,,,,,TRUE,FALSE
+67,132,"Andrew","Leahy",,,"VIC",,,,,,TRUE,FALSE
+68,132,"Aaron","Danson",,,"VIC",,,,,,TRUE,FALSE
+69,133,"Jeff","Gillingham",,"Lake Charm","VIC","3581",,,"0428 500 702",,TRUE,FALSE
+70,133,"Peter","Ladgrove","7 Cullen St","Kerang","VIC","3579",,,,,TRUE,FALSE
+71,134,"Daniel","Buckland","8 Ayres Street","Creswick","VIC","3363",,,"0408 657 668",,TRUE,FALSE
+72,97,"Glenn","Solomano","PO Box 287","Eaglehawk","VIC","3556",,,"0418 459 985","glenns2502@gmail.com",TRUE,FALSE
+73,97,"Stephen","Kelson","PO Box 139","North Bendigo","VIC","3550",,,"0419 884 993",,TRUE,FALSE
+74,127,"Stephen","O'Donoghue","277 Murrabit West Rd","Murrabit","VIC","3579","03 5457 2264",,"0418 572 238","burrpark@bigpond.com",TRUE,FALSE
+75,127,"Leigh","Forster","92 Victoria St","Pyramid Hill","VIC","3575","03 5455 7554",,"0427 847 033",,TRUE,FALSE
+76,101,"Jamie","Semmler","1751 Koondrook Murrabit Rd","Murrabit","VIC","3579",,,"0411 585 716",,TRUE,FALSE
+77,110,"Greg","Maher","143 Reservoir Rd","Strathdale","VIC","3550","5441 2457",,"0418 538 897",,TRUE,FALSE
+78,110,"Michael","McKenna","37 Stephenson St","Huntly","VIC","3551","5448 8018",,"0407 539 559",,TRUE,FALSE
+79,119,"Shane","Hamlyn-Harris","PO Box 65","Quambatook","VIC","3540","03 5457 1393",,"0488 577 153",,TRUE,FALSE
+80,119,"Darryl","McKenzie","Kerang Rd","Quambatook","VIC","3540","03 5457 1204",,"0429 809 743",,TRUE,FALSE
+81,135,"Jim","Danson","174 Dunbar Road","Murrabit","VIC","3579","03 5457 2367",,"0427 572 367",,TRUE,FALSE
+82,108,"David","Waddell","65 Station St","Wallan East","VIC","3756",,,"0400 669 002",,TRUE,FALSE
+83,118,"Josef","Wenselowski","2 Romsey Court","Wodonga","VIC","3690","02 6024 2516",,"0421 165 285","wensejos@westnet.com.au",TRUE,FALSE
+84,118,"Eddie","Wright","5 Hampton Crt","Wodonga","VIC","3690","02 6056 4851",,"0407 480 665","eddie.wright@effon.com",TRUE,FALSE
+85,114,"Des","Stakelum","168 Aspinall St","Kangaroo Flat","VIC","3555",,,"0407 877 315","dstakelum@me.com",TRUE,FALSE
+86,114,"Adam","Beardon","65 Dyson Road","Mandurang","VIC","3551",,,"0427 234 054",,TRUE,FALSE
+87,99,"Peter","Heffer","516 Murrabit West Rd","Murrabit","VIC","3579","03 5457 2278",,"0408 054 880",,TRUE,FALSE
+88,99,"Brian","Smith","514 Murrabit West Rd","Murrabit","VIC","3579",,,"0417 522 060",,TRUE,FALSE
+89,126,"Peter","Buckell","10 Botany Drive","Junortown","VIC","3551","03 5439 3548",,"0401 429 382",,TRUE,FALSE
+90,126,"Damien","Dillion","290 Woodward Rd","Golden Square","VIC","3550",,,"0406 099 744",,TRUE,FALSE
+91,136,"Dermot","Moffat","52 Scoresby St","Kerang","VIC","3579",,,"0437 780 344",,TRUE,FALSE
+92,136,"Sam","McNeil","Myall","Myall","VIC","3579",,,"0400 642 239",,TRUE,FALSE
+93,108,"Kevin","Bluck","18 Hadley Drv","Wallan","VIC","3756",,,"0438 447 103","kbluck@bigpond.net.au",TRUE,FALSE
+94,93,"David","Carter","42 Poole St","Maryborough","VIC","3465","03 5461 3669",,"0488 408 400","daveonsite4@gmail.com",TRUE,FALSE
+95,104,"Terry","Stacey","PO Box 182","Kerang","VIC","3579","5452 2200",,"0428 503 337",,TRUE,FALSE
+96,95,"Dave","Semmler","106 Begelhole Rd","Murrabit","VIC","3579","03 5457 2470",,"0427 575 255",,TRUE,FALSE
+97,112,"David","Stubbs","PO Box 226","Kerang","VIC","3579","03 5452 2525",,"0407 506 002",,TRUE,FALSE
+98,104,"Chris","Wren","1 Teal Drive","Mildura","VIC","3502",,,"0419 036 396",,TRUE,FALSE
+99,111,"Neville","Hunt","6 Loven Drive","White Hills","VIC","3551","5448 4892",,"0418 539925","nhunt@powercor.com.au",TRUE,FALSE
+100,121,"Jack","Challis","41 Hughes Lane","Murrabit","VIC","3579","5457 2494",,"0427 570 309",,TRUE,FALSE
+101,121,"Chris","Wagner","473 Tannery Lane","Strathfieldsaye","VIC","3551","03 5439 3668",,"0427 413 795","wagner1@iinet.net.au",TRUE,FALSE
+102,137,"Brenden","Fletcher","4 Sweeney St","Bendigo","VIC","3550","5442 8853",,,,TRUE,FALSE
+103,96,"Darrell","Phillips","PO Box 1077","Echuca","VIC","3564",,,"0413 126 442",,TRUE,FALSE
+104,96,"Trevor","Brown","581 Looker Rd","Echuca Village","VIC","3564",,,"0448 835 241",,TRUE,FALSE
+105,43,"Damian","Malone","219 High Street","Nagambie","VIC","3608","0438923002",,,"dgmplumbing@gmail.com",TRUE,FALSE
+106,43,"Cameron","Malone","96 Redbank Rd","Seymour","VIC","3660",,,,"cammi_76@hotmail.com",TRUE,FALSE
+107,24,"Troy","van Groen","15 Oldbridge Blvd","Melton South","VIC","3338",,,"0428903850","troy0_@hotmail.com",TRUE,FALSE
+108,24,"Malcolm","Mac Gregor","33 Queensbury Way","Werribee","VIC","3030",,,"0431578018","Troy0_@hotmail.com",TRUE,FALSE
+109,87,"Dennis","Greenwood","3 Airport Rd","Kerang","VIC","3579","0354503711",,"0439503723","fordkerang@arnoldtgreenwood.com.au",TRUE,FALSE
+110,53,"Rhys","Neville","4462B Murray Valley Highway","Lake Boga","VIC","3584",,,"0448 345 854","nev_53@hotmail.com",TRUE,FALSE
+111,53,"Lauren","Faliszewski","4462B Murray Valley Highway","Lake Boga","VIC","3584",,,"0428145283","fella_chef_ski@hitmail.com",TRUE,FALSE
+112,55,"Matt","Webb","14 Lyall ave","Kerang","VIC","3579",,,"0417 318768","matthewwebb1@bigpond.com",TRUE,FALSE
+113,55,"Dean","Carter","24 Leslie St","Kerang","VIC","3515",,,,"matthewwebb1@bigpond.com",TRUE,FALSE
+114,32,"Rowan","Frankling","PO Box 36","Murrabit","VIC","3579",,,"0428841699","juliefrankling@bigpond.com",TRUE,FALSE
+115,39,"Chris","Broadhurst","37 Rivergum Drive","Inverleigh","VIC","3321",,,"0413828410","raeshelle80@hotmail.com",TRUE,FALSE
+116,82,"Lincoln","Adcock","2 Valiant Court","Golden Square","VIC","3555","0417398525",,,"lincolnadcock@gmail.com",TRUE,FALSE
+117,29,"Grant","Ronchi","12 Lewana Way","Strathfieldsaye","VIC","3551",,,"0448768543","grant_ronchi@yahoo.com.au",TRUE,FALSE
+118,47,"Neil","Hopkins","1 WHITER ST","MURRABIT","VIC","3579",,,"0439970029","hopkins.neil.r@edumail.vic.gov.au",TRUE,FALSE
+119,47,"Danny","King","10 BOWLES RD","EPSOM","VIC","3551","54485454",,,"hopkins.neil.r@edumail.vic.gov.au",TRUE,FALSE
+120,47,"Grant","Pascoe","15 ALISON BVD","EPSOM","VIC","3551",,,"0429 361 222","hopkins.neil.r@edumail.vic.gov.au",TRUE,FALSE
+121,29,"Anthony","Anderson","5 Stanson place","Maiden Gully","VIC","3551","0448772223",,"0448772223","anthony.anderson@simonds.com.au",TRUE,FALSE
+122,29,"Greg","Boyd","21 hakea rd","Huntly","VIC","3551","0409101159",,,"gregboyd04@hotmail.com",TRUE,FALSE
+123,49,"Daniel","Connell","2 Tulloch crt","Bacchus Marsh","VIC","3340",,,"0431249933","danieltconnell89@gmail.com",TRUE,FALSE
+124,49,"Jack","Durham","116 Masons Lane","Bacchus Marsh","VIC","3340","0408174075",,,"jacksondurham94@gmail.com",TRUE,FALSE
+125,46,"Chris","Weiler","29 park street","inverleigh","VIC","3321","03 52651696",,"0448885357","cweiler@sov.net.au",TRUE,FALSE
+126,111,"Matthew","Forster","3 Egans Rd","Huntly","VIC","3551",,,"0400998411","matthewforster@hyline.com.au",TRUE,FALSE
+127,22,"Steven","Peirce","64 Finlay Rd","Thurgoona","NSW","2640",,,,"s.peirce@hotmail.com",TRUE,FALSE
+128,22,"Anthony","Harmer","38 Cassinia Crt","Thurgoona","NSW","2640",,,,"anthony.harmer10@gmail.com",TRUE,FALSE
+129,68,"Ashley","Trigg","456 River Road","Gonn Crossing","VIC","3579",,,"0428239228","mel_thompson88@yahoo.com.au",TRUE,FALSE
+130,6,"Paul","Rosser","9 Honour Street","Craigieburn","VIC","3064",,,"0437729906","paul.rosser69@gmail.com",TRUE,FALSE
+131,81,"Cameron","Place","27 Wallington Rd","Ocean Grove","VIC","3226",,,"0400451166","cameron.place@bendigobank.com.au",TRUE,FALSE
+132,81,"Steven","Ellis","99 Gardiner St","Creswick","VIC","3363",,,"0427324750","cameron.place@bendigobank.com.au",TRUE,FALSE
+133,81,"Geoff","Hepworth","5 Haines St","Creswick","VIC","3363",,,"0427324750","cameron.place@bendigobank.com.au",TRUE,FALSE
+134,81,"Rhys","Pontelandolfo","3 Amy Crs","Echuca","VIC","3564",,,"0408844341","cameron.place@bendigobank.com.au",TRUE,FALSE
+135,80,"Graham","Hedt","135 Hermans Rd","Blackheath","VIC","3401","0427 540 726",,"0427 540 726","hedtella@skymesh.com.au",TRUE,FALSE
+2136,0,"Lyal","Hedt","135 Hermans Rd","Blackheath","VIC","3401","0427 540 726",,"0427 540 726","hedtella@skymesh.com.au",TRUE,FALSE
+137,57,"Andrew","Spitty","239 Stevenson Road","Lake Charm","VIC","3581",,,,"andrew@essentialassessment.com.au",TRUE,FALSE
+138,57,"Joe","Stevenson","239 Stevenson Road","Lake Charm","VIC","3581",,,,"andrew@essentialassessment.com.au",TRUE,FALSE
+139,75,"Brendan","Gibson","5134 Birchip/Rainbow rd","Beulah","VIC","3395",,,,"goodsie52@hotmail.com",TRUE,FALSE
+140,75,"Les","Klemm","133 jamouneau st","warracknabeal","VIC","3393",,,,"lesta2@bigpond.com",TRUE,FALSE
+141,59,"Mervyn","Downs","434 Broadway","WYCHEPROOF","VIC","3527",,,"0488727579","b.sturner@bigpond.com",TRUE,FALSE
+142,59,"Brian","Turner","434 Broadway","WYCHEPROOF","VIC","3527",,,"0418902380","b.sturner@bigpond.com",TRUE,FALSE
+143,59,"Mitchell","Turner","434 Broadway","WYCHEPROOF","VIC","3527",,,"0428467979","b.sturner@bigpond.com",TRUE,FALSE
+144,60,"Tom","Hetherington","7 afton street","north bendigo","VIC","3550",,,"0400150725","thomashetherington@outlook.com",TRUE,FALSE
+145,60,"Darcy","Hetherington","7 afton street","North bendigo","VIC","3550",,,"0400846219","demon_darcy@hotmail.com",TRUE,FALSE
+146,48,"Chris","Hunter","6 Dunlop st","Kerang","VIC","3579","0428171519",,"0428171519","dubhunter@bigpond.com",TRUE,FALSE
+147,88,"Michael","Martin","115 sunset views bvd","tarneit","VIC","3029",,,"0402788241","mikgm@bigpond.com",TRUE,FALSE
+148,88,"Peter","Magalotti","1 belah ave","altona","VIC","3018",,,"0468928523","mikgm@bigpond.com",TRUE,FALSE
+149,88,"Frank","Martin","4 ormond rd","west footscray","VIC","3012",,,"041063770","mikgm@bigpond.com",TRUE,FALSE
+150,88,"Brian","Martin","32 mitchell rd","melton south","VIC","3330",,,"0402043856","mikgm@bigpond.com",TRUE,FALSE
+151,30,"Peter","Mayberry","11 taegtow way","altona meadows","VIC","3028",,,"0411318711","mikgm@bigpond.com",TRUE,FALSE
+152,79,"Dylan","Fox","4148 Donald Swan Hill Rd","Goschen","VIC","3585",,,"0429342316","dylan.fox@agrivision.net.au",TRUE,FALSE
+153,79,"Anthony","Fox","4148 Donald Swan Hill Rd","Goschen","VIC","3585",,,"0427225487","callyung@bigpond.com",TRUE,FALSE
+154,25,"Colin","Dick","28 Mulberry Pass","Craigieburn","VIC","3064","0401954970",,"0401954970","shonajoan@yahoo.com",TRUE,FALSE
+155,61,"Casey","Gillen","2283 Murray Valley Hwy","Lake Charm","VIC","3581",,,"0418500397","opgill@westnet.com.au",TRUE,FALSE
+156,19,"Eldred","Cox","25 king st","Rochester","VIC","3561",,,,"eldredcox@bigpond.com",TRUE,FALSE
+157,19,"Nigel","Riordan","63 Twaddle lane","Bamawm","VIC","3561","0438862280",,,"nigel.riordang@bigpond.com",TRUE,FALSE
+158,101,"Justin","Faint","489 Waterloo Road","Waterloo","SA","5413","08 8848 4238",,"0438 884 238","justinfaint@hotmail.com",TRUE,FALSE
+159,116,"Cameron","Fawcett","601 Nullawil-Labert Rd","Kalpienung","VIC","3529","5493 5211",,"0409 696 799","angcam1@bigpond.com",TRUE,FALSE
+160,116,"Paul","Fawcett","1370 Nullawil-Quambatook Rd","Towaninny","VIC","3527","0407 935 201",,"0407 935 200","pgfawcett@bigpond.com",TRUE,FALSE
+161,138,"Luke","Williams","31 Willoughby St","Murchison","VIC","3610",,,"0447 520 810",,TRUE,FALSE
+162,138,"Sam","Cox","9090 Goulburn Valley Hwy","Seymour","VIC","3660",,,"0457 898 505",,TRUE,FALSE
+163,115,"Kev","Spiteri","33 Bakewell St","Bendigo","VIC","3550","0438 428 714",,,"spiteriplumbing@hotmail.com",TRUE,FALSE
+164,115,"Mark","Blink","220 Eaglehawk Rd","Long Gully","VIC","3550",,,"0437 431 191",,TRUE,FALSE
+165,139,"Lyle","Dettmann","17 Hillard Street","Malvern East","VIC","3145",,,"0409 027 344","ljdetteng@bigpond.com",TRUE,FALSE
+166,34,"Paul","Wheelhouse","22 McIvor Forest Drv","Junortown","VIC","3551",,,"0427 353 093","bendigopoolcare@bigpond.com",TRUE,FALSE
+167,117,"Kris","Dixon","14 Waugh St","Charlton","VIC","3525","03 5491 1153",,"0427 364 566","kris.dixon@landmark.com.au",TRUE,FALSE
+168,140,"Scott","McNeil","Myall-Kerang Rd","Myall","VIC","3579",,,"0419 561 126",,TRUE,FALSE
+169,140,"Bailey & Jordon","McNeil","Myall-Kerang Rd","Myall","VIC","3579",,,"0419 561 126",,TRUE,TRUE
+170,106,"Dale","Laursen","Koondrook","Koondrook","VIC","3580",,,"0409 332 015",,TRUE,FALSE
+171,140,"Ray","McNeil","730 Myall Road","Myall","VIC","3579","5457 0252",,"0458 108 028","hawkes.dale@bigpond.com",TRUE,FALSE
+172,123,"Dale","Hartley","232 Hannah Lane","Gonn Crossing","VIC","3579",,,"0429 173 889","dalehartley@bigpond.com",TRUE,FALSE
+173,100,"Max","Hartley","232 Hannah Lane","Gonn Crossing","VIC","3579",,,"0490 530 159",,TRUE,FALSE
+174,100,"Willen","Hartley","232 Hannah Lane","Gonn Crossing","VIC","3579",,,"0490 176 661",,TRUE,FALSE
+175,104,"Wayne","Dettmann","22 Collins Parade","Sorrento","VIC","3943","03 9738 1733",,"0413 456 205","wayne.dettmann@advancedroofsafety.com.au",TRUE,FALSE
+176,141,"Max","Carroll","50 Snell Grove","Pascoe Vale","VIC","3046",,,"0412 549 152","ian@csandg.com.au",TRUE,FALSE
+177,141,"Ross","D'Elton",,"Melbourne","VIC","3000",,,"0412 549 152",,TRUE,FALSE
+178,141,"Peter","Hemmens",,"Melbourne","VIC","3000",,,,,TRUE,FALSE
+179,141,"Wayne","Martin",,"Melbourne","VIC","3000",,,"0412 549 152",,TRUE,FALSE
+180,92,"Peter","Height","269 Brown Road","Echuca","VIC","3564",,,"0408 505 426","height6@bigpond.com",TRUE,FALSE
+181,92,"Ian","McDonald","269 Brown Road","Echuca","VIC","3564",,,,,TRUE,FALSE
+182,131,"Len","Johnson","24 Majorca Rd","Maryborough","VIC","3465","03 5461 3482",,,,TRUE,FALSE
+183,2,"Brendan","Johnson","92 Nelson St","Maryborough","VIC","3465",,,"0439 341 815","johnsoncaravans@tig.com.au",TRUE,FALSE
+184,2,"Aaron","Graham","92 Nelson St","Maryborough","VIC","3465",,,,,TRUE,FALSE
+185,2,"Jason","Partridge","92 Nelson St","Maryborough","VIC","3465",,,,,TRUE,FALSE
+186,32,"Greg","den Houting","17 Penglase Street","Koondrook","VIC","3580","03 5453 1542",,"0488 779 371",,TRUE,FALSE
+187,107,"Stuart","Martin","""Leskenfere""","Barham","NSW","2732","5035 3435",,,,TRUE,FALSE
+188,93,"Daryl","Carter","49 Argyle Road","Maryborough","VIC","3465",,,"0428 613 741",,TRUE,FALSE
+189,106,"Bill","Hollard","4 Station St","Koondrook","VIC","3580","5453 2786",,,,TRUE,FALSE
+190,44,"Simon","Ettershank","P.o box 2","Murrabit ","VIC","3579","0354575232",,"0428575233","murrayview@activ8.net.au",TRUE,FALSE
+191,128,"Nick","Bowles","64 Tampion Ave","Lalbert","VIC","3542","03 5457 3243",,"0475 068 390",,TRUE,FALSE
+192,128,"Sam","Bowles","43 Tampion Ave","Lalbert","VIC","3542","03 5457 3243",,"0428 995 424","bowlzy26@hotmail.com",TRUE,FALSE
+193,113,"Neil","Bowles","43 Tampion Ave","Lalbert","VIC","3542","5457 3243",,"0427 515 589",,TRUE,FALSE
+194,144,"Michael","Cook","c/o Post Office","Koondrook","VIC","3580",,,,,TRUE,FALSE
+195,144,"Geoff","Williams",,,"VIC",,,,,,TRUE,FALSE
+196,145,"Tracey","Ridley","52 Sussex St","Linton","VIC","3360",,,"0419 388 486",,TRUE,FALSE
+197,145,"Bill","Redmond","52 Sussex St","Linton","VIC","3360",,,,,TRUE,FALSE
+198,145,"Mark","Thomas","52 Sussex St","Linton","VIC","3360",,,,,TRUE,FALSE
+199,32,"Scott","McGowan","53 Jamieson Ave","Barham","NSW","2732","5453 1164",,"0428 532 456",,TRUE,FALSE
+200,131,"Peter","Shay","116 Queens Ave","Maryborough","VIC","3465",,,"0427 612 790",,TRUE,FALSE
+201,98,"Bill","Hazen","c/o P.O.","Murrabit","VIC","3579",,,,,TRUE,FALSE
+202,98,"Rick","McKenzie","511 River Rd","Murrabit West","VIC","3579",,,"0427 989 236",,TRUE,FALSE
+203,102,"Graham","Collicoat","20 Tullaroop Rd","Maryborough","VIC","3465",,,"0417 851 202",,TRUE,FALSE
+204,148,"Paul","Migga","Punt Lane","Murrabit","VIC","3579",,,"0415 501 054",,TRUE,FALSE
+205,94,"David","Burt","23 Janelle Drive","Maiden Gully","VIC","3551","5449 7078",,"0439 712 258","burtbuilders@bigpond.com",TRUE,FALSE
+206,94,"Adam","Boyle","23 Janelle Dr","Maiden Gully","VIC","3551",,,"0437 916 800",,TRUE,FALSE
+207,103,"Ossie","Dixon","17 Kathleen Tce","Maiden Gully","VIC","3551","5449 6310",,"0447 711 088","ossiedix@bigpond.com",TRUE,FALSE
+208,103,"Graeme","Coles","8 Prosepect St","Wycheproof","VIC","3527","5493 7513",,"0408 937 480",,TRUE,FALSE
+209,50,"Hayley","Bond","14 firns lane","Amphitheatre","VIC","3468",,,"0412319489","hayleybond@hotmail.com",TRUE,FALSE
+210,50,"Adam","Richards","14 firns lane","Amphitheatre","VIC","3468",,,"0408649720","adamrichards81@hotmail.com",TRUE,FALSE
+211,50,"Ross","Dowdy","80 Bailey st","Amphitheatre","VIC","3468",,,"0475446417","rldowdy@hotmail.com",TRUE,FALSE
+212,50,"Louise","Dowdy","80 Bailey st","Amphitheatre ","VIC","3468",,,"0475446415","rldowdy@hotmail.com",TRUE,FALSE
+213,74,"Steven","Carr","25 jack st newport","melbourne","VIC","3015",,,,"brett.barrett@raywhite.com",TRUE,FALSE
+214,80,"William","Ainsworth","9 Market Lane ","Horsham","VIC","3400",,,"0428 750 500","bill@momentumfg.com.au",TRUE,FALSE
+215,65,"Glen","Viney","915 Lowe road ","Bamawm","VIC","3561","0428110071",,"0428110071","gdviney@gmail.com",TRUE,FALSE
+216,10,"Paul","Collicoat","28 Newton St","Maryborough","VIC","3465",,,"0417545149","pncollicoat1@bigpond.com",TRUE,FALSE
+217,41,"Greg","Henry","323 Murrabit West Road","Gonn Crossing","VIC","3579",,,"0418511953","greghenru5@bigpond.com",TRUE,FALSE
+218,51,"Paul","Martin","89 Richards rd","Blampied ","VIC","3364",,,"0412773091","paulmartincarpentry@hotmail.com",TRUE,FALSE
+219,51,"David","Martin","89 Richards rd","Blampied","VIC","3364",,,"0412773091","paulmartincarpentry@hotmail.com",TRUE,FALSE
+220,51,"Brad","Martin","89 Richards rd","Blampied","VIC","3364",,,"0412773091","paulmartincarpentry@hotmail.com",TRUE,FALSE
+221,85,"Brock","Mountjoy","751 Midland Hwy","751 Midland Hwy","VIC","3551","0418955966",,,,TRUE,FALSE
+222,85,"John","Dean","751 Midland Hwy","751 Midland Hwy","VIC","3551","0418955966",,,,TRUE,FALSE
+223,85,"Jacob","West","Po box 462 strathfeildsaye ","Strathfeildsaye ","VIC","3551",,,"0422886730","jakethemaniac@hotmail.com",TRUE,FALSE
+224,53,"Brenton","Gibbons","5/9 sternberg street","bendigo","VIC","3550",,,"0418789355","Brentongibbons86@gmail.com",TRUE,FALSE
+225,40,"Matt","Roberts","Unit 10 1 Randall street","Swan hill","VIC","3585",,,"0448619599","matthewlroberts1@hotmail.com",TRUE,FALSE
+226,40,"Joel","Bramble","Unit 10 1 Randall street","Swan hill","VIC","3585",,,,"matthewlroberts1@hotmail.com",TRUE,FALSE
+227,71,"Anita","Wilson","170 alexander rd","mooroopna","VIC","3629","61488718707",,"61488718707","holden-chic@hotmail.com",TRUE,FALSE
+228,71,"Helen","Wilson","170 alexander rd","mooroopna","VIC","3629","0488718606",,"0488718606","helenwilson63@hotmail.com",TRUE,FALSE
+229,28,"Casey","Rooney","62 loop road ","Koondrook ","VIC","3580",,,"0406333559","pogga_001@hotmail.com",TRUE,FALSE
+230,10,"Ivan","Collicoat","18 Chaplins Rd","Maryborough","VIC","3465","0354642300",,,"pncollicoat1@bigpond.com",TRUE,FALSE
+231,38,"Peter","Laursen","6 Danson St","Murrabit","VIC","3579",,,"0427572290","pal67@bigpond.com",TRUE,FALSE
+232,38,"Mitchell","Laursen","6 Danson St","Murrabit","VIC","3579",,,"0458188771","mlaurso47@gmail.com",TRUE,FALSE
+233,70,"Chris","Haley","5 miller street","Sebastopol","VIC","3356",,,"0418402117","katyandchris@bigpond.com",TRUE,FALSE
+234,85,"Aaron","Cowling","81 Greenfield Drive","Epsom","VIC","3551","0418796961",,,"apcowling@icloud.com",TRUE,FALSE
+235,11,"Bill","Rewiti","28 tarnagulla rd ","Inglewood","VIC","3517","54383083",,"0428526089","horijacobs@y7mail.com",TRUE,FALSE
+236,11,"Hori","Jacobs","28 tarnagulla rd","Inglewood","VIC","3517","54383082",,"0428669402","horijacobs@y7mail.com",TRUE,FALSE
+237,83,"Peter","Crowe","124 aspinall street","golden square","VIC","3555","0458544770",,"0458544770","Petercrowe101@hotmail.com",TRUE,FALSE
+238,90,"Greg","Bagg","2420 Hamilton Hwy","Inverleigh","VIC","3321",,,"0438525032","raeshelle80@hotmail.com",TRUE,FALSE
+239,31,"Mitch","Sumner","185 McKillop street","East Geelong ","VIC","3219",,,"0414261877","mitchkayla@hotmail.com",TRUE,FALSE
+240,149,"Peter","Hazeldene",,,"VIC",,,,,,TRUE,FALSE
+241,149,"Russell","Henson","12 Smith St","Woorinen South","VIC","3588",,,,,TRUE,FALSE
+242,150,"Colin","Thompson","673 River Rd","Murrabit West","VIC","3579","5457 2225",,"0407 865 276",,TRUE,FALSE
+243,150,"Lindsay","Oliver","Hocking Dve","Swan Hill","VIC","3585",,,,,TRUE,FALSE
+244,151,"Paul","Battle","196 West Rd","Kerang","VIC","3579",,,"0448 601 480",,TRUE,FALSE
+293,174,"Doris","Ash","Po Box","Murrabut","VIC","3579","0408584655",,,,FALSE,FALSE
+294,174,"Jill","Hein",,,,,,,,,FALSE,FALSE
+295,174,"Gary","Napier",,,,,,,,,FALSE,FALSE
+296,174,"Noel","Robertson",,,,,,,,,FALSE,FALSE
+297,167,"Gary","Mowatt",,,,,,,,,FALSE,FALSE
+299,0,"Daniel","Irwin",,,,,,,,,TRUE,FALSE
+300,0,"Dain","Hayes",,,,,"0418585747",,,,FALSE,FALSE
+298,0,"Simon","Morton",,"Murrabit",,,,,,,FALSE,FALSE
+288,157,"John","Hogg",,,,,,,"0418 563 667",,TRUE,FALSE
+286,101,"Kirby","Faint","489 Waterloo Road","Waterloo","SA","5413",,,,,FALSE,FALSE
+287,171,"Sharon","McKenzie","36 Park Road","Lake Charm","VIC","3581",,,"0400 960 314",,TRUE,FALSE
+285,172,"David","Tomlins","48 Chanter Street","Moama","NSW",,,,"0488 736 833",,TRUE,FALSE
+1022,107,"Liam","Edwards",,,,,,,,,TRUE,TRUE
+136,152,"Mick","Coobs","92 Shadforth St","Kerang","VIC","3579",,,"0488 521 643",,TRUE,FALSE
+291,173,"Rick","Sarre","Post Office","Lake Charm","VIC","3581","5457 9214",,"0429 091 295",,TRUE,FALSE
+292,173,"Rick","Maher",,,,,,,"0408 596 704",,TRUE,FALSE
+1013,162,"Haylee","Landers",,,,,,,,,TRUE,FALSE
+245,151,"Sharon","Battle","196 West Rd","Kerang","VIC","3579",,,"0448 601 480",,TRUE,FALSE
+246,152,"Paul","Neivandt","198 McKenzie Rd","Kerang","VIC","3579","5452 1231",,"0429 188 308","plneivandt@gmail.com",TRUE,FALSE
+247,129,"Darby","Stanton","1610 Cohuna Koondrook Rd","Cohuna","VIC","3568","5453 1677",,"0428 755 972","dobs1@live.com.au",TRUE,FALSE
+248,129,"Joel","McKenzie","289 River Road Gonn Crossing","Murrabit","VIC","3579",,,"0457 559 588","riverbank.park@bigpond.com",TRUE,FALSE
+249,153,"Vince","Maher","Gon Av","Murrabit","VIC","3579",,,"0408 596 703",,TRUE,FALSE
+250,153,"Peter","McCann","Gon Av","Murrabit","VIC","3579",,,,,TRUE,FALSE
+251,154,"Glen","Hutchins","Koondrook Murrabit Rd","Murrabit","VIC","3579",,,,,TRUE,FALSE
+252,155,"Peter","Clarke","14 Glenshael Crt","Strathfieldsaye","VIC","3551",,,"0438 530 885",,TRUE,FALSE
+253,155,"Cameron","Frank","1 Bowles Rd","Epsom","VIC","3551",,,"0413 561 091",,TRUE,FALSE
+254,155,"Bill","McGavic","c/o Bendigo Delivery Centre","Bendigo","VIC","3550",,,"0419 704 378",,TRUE,FALSE
+255,130,"Wayne","Neville","53 Nugget St","Kerang","VIC","3579",,,"0407 557 335","tigenev@hotmail.com",TRUE,FALSE
+256,130,"Ryan","Neville","15 Midas Ct","Strathfieldsaye","VIC","3551",,,"0427 121 125","nevsta@gmail.com",TRUE,FALSE
+257,125,"Ian","Collicoat","42 Sutton Rd","Maryborough","VIC","3465","5461 3274",,"0417 200 391",,TRUE,FALSE
+258,125,"Dean","Collicoat","42 Sutton Rd","Maryborough","VIC","3465",,,"0488 044 174",,TRUE,FALSE
+259,122,"Jeff","Parker","PO Box 124","Boort","VIC","3537","03 5455 2389",,"0458 886 201",,TRUE,FALSE
+260,122,"Geoff","Rumbold","Kerang Rd RSD","Kerang","VIC","3579","03 5455 4282",,,,TRUE,FALSE
+261,122,"Trevor","Sleemon",,"Bendigo","VIC","3550",,,"0429 434 646",,TRUE,FALSE
+262,105,"Josh","Martins","48 Lake Charm East Rd","Lake Charm","VIC","3581",,,"0498 637 562",,TRUE,FALSE
+263,105,"Caleb","Farrer","132 Oataway Road","Wandella","VIC","3579",,,"0428 090 341",,TRUE,FALSE
+264,109,"Matthew","Johnson","30 Logan St","Maryborough","VIC","3465",,,"0409 235 358",,TRUE,FALSE
+265,109,"Jason","Brown","17 Raglan St","Maryborough","VIC","3465",,,,,TRUE,FALSE
+266,157,"Andy","Gary",,"Kerang","VIC","3579",,,,,TRUE,FALSE
+267,157,"Steve","Hicks",,"Kerang","VIC","3579",,,,,TRUE,FALSE
+268,158,"Ross","Stanton","1610 Cohuna Koondrook Rd","Cohuna","VIC","3568",,,"0417 515 769","ross.stanton@gmwater.com.au",TRUE,FALSE
+269,159,"Geoff","McNeil","Westblade Rd","Myall","VIC","3579",,,,,TRUE,FALSE
+270,160,"David","Sinclair","190 Pratt Rd","Kerang","VIC","3579",,,"0428 921 783",,TRUE,FALSE
+271,160,"John","Burns",,"Swan Hill","VIC","3585",,,"0428 936 220",,TRUE,FALSE
+272,161,"Jarrad","Myers","67 Murray St","Kerang","VIC","3579",,,"0437 070 829","jarred485@gmail.com",TRUE,FALSE
+273,162,"Rachel","Landers","143 Dunbar Rd","Murrabit","VIC","3579","03 5457 2328",,"0427 194 147",,TRUE,FALSE
+274,162,"Rohan","Manners",,,"VIC",,,,,,TRUE,FALSE
+275,77,"Josh","Bray","73 Nolan st","Kerang","VIC","3579",,,"0428994891","josh@mcknightbray.com.au",TRUE,FALSE
+276,163,"Peter","Palmer","65 Cohen St","Rochester","VIC","3561",,,"0417 336 404",,FALSE,FALSE
+277,164,"Phil","Frichot","38 Park St","Bendigo","VIC","3550",,,,,TRUE,FALSE
+278,165,"Robyn","Cunington",,"Bendigo","VIC","3550",,,,,TRUE,FALSE
+279,166,"John","Peck",,"Kerang","VIC","3579",,,,,FALSE,FALSE
+280,166,"Dean","Moore",,,"VIC",,,,,,FALSE,FALSE
+281,167,"Russel","Anderson","Ashwin Rd","Myall","VIC","3579",,,,,FALSE,FALSE
+282,167,"Bernie","Monahan",,"Myall","VIC","3579",,,,,FALSE,FALSE
+283,168,"Kristian","Bray","161 Boundary St","Kerang","VIC","3579",,,"0427 421 018","eggbray@hotmail.com",FALSE,FALSE
+284,18,"Nathan","Henry","129 Victoria St ","Kerang","VIC","3579",,,"0407362408","nats08@gmail.com",TRUE,FALSE
+1001,78,"Archer","McKnight","94 Fitzroy Street","Kerang","VIC","3579",,,"0428572377","brent@mcknightbray.com.au",TRUE,TRUE
+1002,89,"Nathan","Gilbert","5 lisa place ","wallan","VIC","3756",,,"0458230615","g.a.gilbert@bigpond.com",TRUE,TRUE
+1003,132,"Clancy","Leahy",,,"VIC",,,,,,TRUE,TRUE
+1004,132,"Thomas","Leahy",,,"VIC",,,,,,TRUE,TRUE
+1005,101,"Alister","Semmler","1751 Koondrook Murrabit Rd","Murrabit","VIC","3579","5457 2295",,,,TRUE,TRUE
+1006,99,"Tyson","Heffer","516 Murrabit West Rd","Murrabit","VIC","3579",,,,,TRUE,TRUE
+1007,32,"Todd","Frankling","PO Box 36","Murrabit","VIC","3579",,,,"juliefrankling@bigpond.com",TRUE,TRUE
+1008,75,"Lachlan","Klemm","133 jamouneau st ","warracknabeal","VIC","3393",,,,"lesta2@bigpond.com",TRUE,TRUE
+1009,79,"Ben","Fox","4148 Donald Swan Hill Rd","Goschen","VIC","3585",,,,"callyung@bigpond.com",TRUE,TRUE
+1010,61,"Sean","Gillen","2283 Murray valley Hwy","Lake Charm","VIC","3581",,,"0418500397","opgill@westnet.com.au",TRUE,TRUE
+1011,117,"Bailey","Dixon","14 Waugh St","Charlton","VIC","3525","03 5491 1153",,,,TRUE,TRUE
+1012,117,"Connor","Hooper","14 Waugh St","Charlton","VIC","3525","03 5491 1153",,,,TRUE,TRUE
+289,107,"Jack","Kelly","""Leskenfere""","Barham","VIC","2732",,,,,TRUE,TRUE
+290,107,"Tom","Kelly","""Leskenfere""","Barham","VIC","2732",,,,,TRUE,TRUE
+1015,45,"Toby","Lambert","241 dicksons Rs","cohuna ","VIC","3568",,,"0499006638","beaulambert@hotmail.com",TRUE,TRUE
+1016,144,"Kane","Dixon",,"Donald","VIC","3480",,,,,TRUE,TRUE
+1017,70,"Sky","Haley","5 miller street","Sebastopol","VIC","3356",,,,"katyandchris@bigpond.com",TRUE,TRUE
+1018,90,"Tom","Bagg","2420 Hamilton Hwy","Inverleigh","VIC","3321",,,"0438525032","Raeshelle80@hotmail.com",TRUE,TRUE
+1019,90,"Jake","Bagg","2420 Hamilton Hwy","Inverleigh","VIC","3321",,,"0438525032","raeshelle80@hotmail.com",TRUE,TRUE
+1020,163,"Jack","Palmer","65 Cohen St","Rochester","VIC","3561",,,,,FALSE,TRUE
+1021,163,"Charlie","Palmer","65 Cohen St","Rochester","VIC","3561",,,,,FALSE,TRUE
