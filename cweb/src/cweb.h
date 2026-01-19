@@ -3,5 +3,5 @@
 #define APP_NAME "fishingcomp"
 #define VERSION "0.0.1"
 
-sqlite3 *db;
+static sqlite3 *db;
 
