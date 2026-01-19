@@ -34,10 +34,6 @@ void handle_ecewo_log(LogLevel level, const char *file, int line,
             NULL);
 }
 
-void routes() {
-    get("/health", health);
-}
-
 void db_open(const char *db_name) {
     int rc = sqlite3_open(db_name, &db);
     if (rc != SQLITE_OK) {
