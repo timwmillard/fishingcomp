@@ -21,23 +21,30 @@ import (
 
 
 
+const getCompetitors = `-- name: GetCompetitors :many
+select id, competitor_no, firstname, last_name, email, mobile, phone, address1, address2, suburb, state, postcode, boat_id
+from competitor
+`
 
 
 
 
-func (q *Queries) GetCompetitors(ctx context.Context, ) ([]Competitor, error) {
-	rows, err := q.db.Query(ctx, getCompetitors, )
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Competitor
-	for rows.Next() {
-		var i Competitor
-		if err := rows.Scan(
+
+
+
+
+func (q *Queries) GetCompetitors(ctx context.Context,  ) ([]Competitor, error) {rows, err := q.db.QueryContext(ctx, getCompetitors, )
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    var items []Competitor
+    for rows.Next() {
+        var i Competitor
+        if err := rows.Scan(
 &i.ID,
 &i.CompetitorNo,
-&i.FirstName,
+&i.Firstname,
 &i.LastName,
 &i.Email,
 &i.Mobile,
@@ -49,15 +56,26 @@ func (q *Queries) GetCompetitors(ctx context.Context, ) ([]Competitor, error) {
 &i.Postcode,
 &i.BoatID,
 ); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+            return nil, err
+        }
+        items = append(items, i)
+    }
+    if err := rows.Close(); err != nil {
+        return nil, err
+    }
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
+    return items, nil
 }
+
+
+
+
+
+
+
+
 
 
 

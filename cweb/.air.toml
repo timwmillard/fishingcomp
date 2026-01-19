@@ -10,7 +10,7 @@ cmd = "cmake --build build"
 post_cmd = []
 delay = 1000
 exclude_dir = ["build", "_tmp"]
-exclude_file = ["src/schema.h"]
+exclude_file = ["src/schema.h", "src/models.h"]
 exclude_regex = []
 exclude_unchanged = false
 follow_symlink = false
@@ -36,7 +36,7 @@ watcher = "cyan"
 
 [log]
 main_only = false
-silent = true
+silent = false
 time = false
 
 [misc]

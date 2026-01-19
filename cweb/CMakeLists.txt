@@ -54,13 +54,15 @@ add_custom_target(generate_schema DEPENDS ${CMAKE_SOURCE_DIR}/src/schema.h)
 
 # Custom targets
 add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/sql/model/models.h
+    OUTPUT ${CMAKE_SOURCE_DIR}/src/models.h
     COMMAND go tool sqlc generate
+    COMMAND clang-format -i ${CMAKE_SOURCE_DIR}/sql/model/models.h
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/sql/model/models.h ${CMAKE_SOURCE_DIR}/src/models.h
     DEPENDS ${CMAKE_SOURCE_DIR}/sql/schema.sql ${CMAKE_SOURCE_DIR}/sql/queries.sql
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/sql
-    COMMENT "Generating code with sqlc"
+    COMMENT "Generating models with sqlc and formatting"
 )
-add_custom_target(generate_sqlc DEPENDS ${CMAKE_SOURCE_DIR}/sql/model/models.h)
+add_custom_target(sqlc DEPENDS ${CMAKE_SOURCE_DIR}/src/models.h)
 
 add_executable(${PROJECT_NAME}
   src/main.c
@@ -72,9 +74,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 # Ensure schema.h is generated before building the executable
-add_dependencies(${PROJECT_NAME} 
+add_dependencies(${PROJECT_NAME}
     generate_schema
-    generate_sqlc
+    sqlc
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ecewo)
