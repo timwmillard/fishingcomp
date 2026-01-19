@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "ecewo.h"
+#include "sqlite3.h"
 
 #define SLOG_IMPLEMENTATION
 #include "slog.h"
@@ -10,7 +11,7 @@
 #include "flag.h"
 
 #include "cweb.h"
-
+#include "schema.h"
 #include "handlers.c"
 
 void usage(FILE *stream)
@@ -37,6 +38,34 @@ void handle_ecewo_log(LogLevel level, const char *file, int line,
 
 void routes() {
     get("/health", health);
+}
+
+void db_open(const char *db_name) {
+    int rc = sqlite3_open(db_name, &db);
+    if (rc != SQLITE_OK) {
+        slog_error("Can't open database",
+                slog_string("error",  sqlite3_errmsg(db))
+        );
+        sqlite3_close(db);
+        exit(1);
+    }
+    slog_info("Database opened",
+            slog_string("database_name", db_name)
+    );
+
+    // Execute embedded schema
+    char *err_msg = NULL;
+    rc = sqlite3_exec(db, (char*)sql_schema_sql_data, NULL, NULL, &err_msg);
+    if (rc != SQLITE_OK) {
+        slog_error("schema execution failed",
+                slog_string("error",  sqlite3_errmsg(db))
+        );
+        sqlite3_free(err_msg);
+        exit(1);
+    }
+    slog_info("Database schema exec",
+            slog_string("database_name", db_name)
+    );
 }
 
 int main(int argc, char *argv[]) {
@@ -67,6 +96,9 @@ int main(int argc, char *argv[]) {
 
     server_set_log_handler(handle_ecewo_log);
     server_set_log_level(LOG_LEVEL_INFO);
+
+    const char *db_name = "fishingcomp.db";
+    db_open(db_name);
 
     int err;
     int backlog = 0;
