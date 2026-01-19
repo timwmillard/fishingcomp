@@ -72,6 +72,7 @@ int main(int argc, char *argv[]) {
         flag_print_error(stderr);
         exit(1);
     }
+
     argc = flag_rest_argc();
     argv = flag_rest_argv();
     if (*help) {
@@ -91,7 +92,8 @@ int main(int argc, char *argv[]) {
     server_set_log_handler(handle_ecewo_log);
     server_set_log_level(LOG_LEVEL_INFO);
 
-    const char *db_name = "fishingcomp.db";
+    const char *db_name = flag_shift_args(&argc, &argv);
+    if (db_name == NULL) db_name = "fishingcomp.db";
     db_open(db_name);
 
     int err;
