@@ -1,0 +1,16 @@
+version: 2
+plugins:
+- name: golang
+  wasm:
+    url: file:///Users/tim/cprogs/tserver/sqlc/plugins/sqlc-gen-c/bin/sqlc-gen-c.wasm
+    sha256: ""
+sql:
+- engine: "sqlite"
+  queries: "queries.sql"
+  schema: "schema.sql"
+  codegen:
+  - plugin: golang
+    out: model
+    options:
+      package: model
+      # sql_package: pgx/v5

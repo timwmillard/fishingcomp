@@ -12,17 +12,17 @@ create table if not exists boat (
 -- Competitor
 create table if not exists competitor (
     id integer primary key,
-    competitor_no text default '', -- TODO: make an int
-    first_name text default '',
-    last_name text default '',
-    email text default '',
-    mobile text default '',
-    phone text default '',
-    address1 text default '',
-    address2 text default '',
-    suburb text default '',
-    state text default '',
-    postcode text default '',
+    competitor_no text not null default '', -- TODO: make an int
+    first_name text not null default '',
+    last_name text not null default '',
+    email text not null default '',
+    mobile text not null default '',
+    phone text not null default '',
+    address1 text not null default '',
+    address2 text not null default '',
+    suburb text not null default '',
+    state text not null default '',
+    postcode text not null default '',
     boat_id integer references boat(id)
 );
 
@@ -32,9 +32,9 @@ create table if not exists competitor (
 create table if not exists species (
     id integer primary key,
     name text not null,
-    scientific_name text not null default '',
-    common_names text not null,
     slug text not null,
+    scientific_name text not null default '',
+    common_names text not null default '',
     photo_url text not null default '',
     type text check (type in ('native', 'introduced')) not null default 'native',
     unique(name),

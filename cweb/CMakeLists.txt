@@ -52,6 +52,16 @@ add_custom_command(
 )
 add_custom_target(generate_schema DEPENDS ${CMAKE_SOURCE_DIR}/src/schema.h)
 
+# Custom targets
+add_custom_command(
+    OUTPUT ${CMAKE_SOURCE_DIR}/sql/model/models.h
+    COMMAND go tool sqlc generate
+    DEPENDS ${CMAKE_SOURCE_DIR}/sql/schema.sql ${CMAKE_SOURCE_DIR}/sql/queries.sql
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/sql
+    COMMENT "Generating code with sqlc"
+)
+add_custom_target(generate_sqlc DEPENDS ${CMAKE_SOURCE_DIR}/sql/model/models.h)
+
 add_executable(${PROJECT_NAME}
   src/main.c
   ${CMAKE_SOURCE_DIR}/vendor/sqlite3.c
@@ -62,6 +72,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 # Ensure schema.h is generated before building the executable
-add_dependencies(${PROJECT_NAME}  generate_schema)
+add_dependencies(${PROJECT_NAME} 
+    generate_schema
+    generate_sqlc
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ecewo)
+
