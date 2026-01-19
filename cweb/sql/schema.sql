@@ -10,7 +10,7 @@ create table if not exists boat (
 -- create unique index boat_event_id_boat_no_key on boat(event_id, boat_no) where boat_no <> '';
 
 -- Competitor
-create table if not exists competitor  (
+create table if not exists competitor (
     id integer primary key,
     competitor_no text default '', -- TODO: make an int
     first_name text default '',
