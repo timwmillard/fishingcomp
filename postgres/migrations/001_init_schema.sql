@@ -1,6 +1,28 @@
 -- fishingcomp inital schema
 
+create schema if not exists auth;
+
+create table auth.user (
+    id bigint generated always as identity primary key,
+    username text not null unique check (username <> ''),
+    password text not null check (password <> ''),
+    email text unique,
+    email_confirmed_at timestamptz,
+    phone text unique,
+    phone_confirmed_at timestamptz
+);
+
 create schema if not exists fishing;
+
+create table fishing.address (
+    id bigint generated always as identity primary key,
+    line1 text not null default '',
+    line2 text not null default '',
+    suburb text not null default '',
+    state text not null default '',
+    postcode text not null default '',
+    country text not null default ''
+);
 
 -- Club
 create table if not exists fishing.club (
@@ -10,13 +32,8 @@ create table if not exists fishing.club (
     legal_name text not null default '',
     logo_url text not null default '',
     custom_domain text not null default '',
-    billing_address1 text not null default '',
-    billing_address2 text not null default '',
-    billing_suburb text not null default '',
-    billing_state text not null default '',
-    billing_postcode text not null default '',
-    settings json not null default '{}',
-    current_event bigint default null,
+    billing_address_id bigint references fishing.address(id),
+    settings json not null default '{}'
     unique(slug)
 );
 
@@ -42,16 +59,12 @@ create table if not exists fishing.person (
     last_name text not null default '',
     email text not null default '',
     mobile text not null default '',
-    address1 text not null default '',
-    address2 text not null default '',
-    suburb text not null default '',
-    state text not null default '',
-    postcode text not null default '',
+    address_id bigint references fishing.address(id),
     meta json not null default '{}',
     settings json not null default '{}'
 );
 
--- Team
+-- Boat
 create table if not exists fishing.boat (
     id bigint generated always as identity primary key,
     boat_no text not null default '', -- TODO: make an int
@@ -110,9 +123,48 @@ create table fishing.catch (
     bait text not null default '',
     location_name text not null default '',
     location point,
-    photo_url text not null default '',
     event_id bigint not null references fishing.event(id)
 );
 
 comment on column fishing.catch.size is 'fish length in millimetres';
+
+create type fishing.catch_review_status as enum (
+    'submitted',
+    'approved',
+    'rejected'
+);
+
+-- Catch
+create table fishing.catch_review (
+  id bigint generated always as identity primary key,
+  competitor_id bigint not null references fishing.competitor(id),
+  species_id bigint not null references fishing.species(id),
+  size int not null,
+  caught_at timestamptz not null,
+  bait text not null default '',
+  location_name text not null default '',
+  location point,
+  photo_url text,
+  event_id bigint not null references fishing.event(id),
+  submitter_user_id uuid,  -- references auth.users(id),
+  submitted_at timestamptz default now(),
+  reviewer_user_id uuid, -- references auth.users(id),
+  reviewer_comment text not null default '',
+  reviewed_at timestamptz,
+  status fishing.catch_review_status not null default 'submitted' check (
+      (status = 'submitted' and catch_id is null) or
+      (status = 'approved' and catch_id is not null and reviewer_user_id is not null) or
+      (status = 'rejected' and catch_id is null and reviewer_user_id is not null)
+                                                                        ),
+  catch_id bigint references fishing.catch(id) check (status = 'approved')
+);
+
+-- Catch Photo
+create table catch_photo (
+    id bigint generated always as identity primary key,
+    catch_id bigint references fishing.catch(id),
+    storage_id text not null check (storage_id <> ''),
+    url text not null default '',
+    is_feature timestamptz
+);
 
