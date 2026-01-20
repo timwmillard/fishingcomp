@@ -1,36 +1,42 @@
 
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
+#include "sqlite3.h"
+
 typedef unsigned char sql_byte;
 
 typedef double sql_double;
+
 typedef struct {
   sql_double value;
   bool is_null;
 } sql_nulldouble;
 
 typedef int sql_int;
+
 typedef struct {
   sql_int value;
   bool is_null;
 } sql_nullint;
 
 typedef int64_t sql_int64;
+
 typedef struct {
   sql_int64 value;
   bool is_null;
 } sql_nullint64;
 
 typedef double sql_numeric;
+
 typedef struct {
   sql_numeric value;
   bool is_null;
 } sql_nullnumeric;
 
 typedef bool sql_bool;
+
 typedef struct {
   sql_bool value;
   bool is_null;
@@ -40,6 +46,7 @@ typedef struct {
   sql_byte *data;
   size_t len;
 } sql_blob;
+
 typedef struct {
   sql_byte *data;
   size_t len;
@@ -50,11 +57,17 @@ typedef struct {
   char *data;
   size_t len;
 } sql_text;
+
 typedef struct {
   char *data;
   size_t len;
   bool is_null;
 } sql_nulltext;
+
+typedef struct {
+  sqlite3 *db;
+  void *(*alloc)(void *, int);
+} sql_context;
 
 typedef struct {
   sql_int64 ID;
@@ -77,7 +90,7 @@ typedef struct {
 typedef struct {
   sql_int64 ID;
   sql_text CompetitorNo;
-  sql_text Firstname;
+  sql_text FirstName;
   sql_text LastName;
   sql_text Email;
   sql_text Mobile;

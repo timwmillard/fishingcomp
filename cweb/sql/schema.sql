@@ -13,7 +13,7 @@ create table if not exists boat (
 create table if not exists competitor (
     id integer primary key,
     competitor_no text not null default '', -- TODO: make an int
-    firstname text not null default '',
+    first_name text not null default '',
     last_name text not null default '',
     email text not null default '',
     mobile text not null default '',

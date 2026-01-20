@@ -1,4 +1,5 @@
--- name: GetCompetitors :many
+-- name: GetCompetitor :one
 select *
-from competitor;
+from competitor
+where id = ?;
 
