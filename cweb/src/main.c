@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     slog_level level = SLOG_DEBUG;
     if (strcmp(*log_format, "json") == 0)
         log_handler = slog_json_handler_new(stdout, level);
-    else if (strcmp(*log_format, "color") == 0)
+    else if (strcmp(*log_format, "color") == 0 || strcmp(*log_format, "humanlog") == 0)
         log_handler = slog_color_text_handler_new(stdout, level);
     else 
         log_handler = slog_text_handler_new(stdout, level);
@@ -106,14 +106,15 @@ int main(int argc, char *argv[]) {
                  );
 
     if (server_init() != 0) {
-        fprintf(stderr, "Failed to initialize server\n");
+        slog_error("Failed to initialize server");
         return -1;
     }
 
     routes();
 
     if (server_listen(*port) != 0) {
-        fprintf(stderr, "Failed to start server\n");
+        slog_error("Failed to start server",
+                slog_int("port", *port));
         return -1;
     }
 

@@ -873,8 +873,8 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
     // Timestamp (dim) with milliseconds
     fprintf(data->output, "%s%s.%03d%s ", SLOG_COLOR_DIM, time_buf, record->time_ms, SLOG_COLOR_RESET);
 
-    // Level with color and pipes
-    fprintf(data->output, "|%s%s%s| ", level_color, slog_level_string(record->level), SLOG_COLOR_RESET);
+    // Level with color and pipes (4 chars max)
+    fprintf(data->output, "|%s%.4s%s| ", level_color, slog_level_string(record->level), SLOG_COLOR_RESET);
 
     // Message (white/normal)
     fprintf(data->output, "%s", record->message);
