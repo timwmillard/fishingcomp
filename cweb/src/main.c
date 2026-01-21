@@ -35,7 +35,7 @@ void handle_ecewo_log(LogLevel level, const char *file, int line,
 void db_open(const char *db_name) {
     int rc = sqlite3_open(db_name, &db);
     if (rc != SQLITE_OK) {
-        slog_error("Can't open database",
+        slog_error("Database open failed",
                 slog_string("error",  sqlite3_errmsg(db))
         );
         sqlite3_close(db);
@@ -49,7 +49,7 @@ void db_open(const char *db_name) {
     char *err_msg = NULL;
     rc = sqlite3_exec(db, (char*)sql_schema_sql_data, NULL, NULL, &err_msg);
     if (rc != SQLITE_OK) {
-        slog_error("schema execution failed",
+        slog_error("Database schema execution failed",
                 slog_string("error",  sqlite3_errmsg(db))
         );
         sqlite3_free(err_msg);
@@ -100,25 +100,25 @@ int main(int argc, char *argv[]) {
     int err;
     int backlog = 0;
 
-    slog_info("Server started",
+    slog_info("Server starting",
                  slog_string("version", VERSION),
                  slog_string("log_format", *log_format)
                  );
 
     if (server_init() != 0) {
-        slog_error("Failed to initialize server");
+        slog_error("Server failed to initialise");
         return -1;
     }
 
     routes();
 
     if (server_listen(*port) != 0) {
-        slog_error("Failed to start server",
+        slog_error("Server failed to listen on",
                 slog_int("port", *port));
         return -1;
     }
 
-    slog_info("Server started",
+    slog_info("Server listening",
              slog_int("port", *port)
              );
 
