@@ -807,8 +807,11 @@ slog_handler *slog_json_handler_new(FILE *output, slog_level min_level) {
 #define SLOG_COLOR_CYAN    "\033[36m"
 #define SLOG_COLOR_WHITE   "\033[37m"
 #define SLOG_COLOR_BRIGHT_RED    "\033[91m"
+#define SLOG_COLOR_BRIGHT_GREEN  "\033[92m"
 #define SLOG_COLOR_BRIGHT_YELLOW "\033[93m"
+#define SLOG_COLOR_BRIGHT_BLUE   "\033[94m"
 #define SLOG_COLOR_BRIGHT_CYAN   "\033[96m"
+#define SLOG_COLOR_BRIGHT_WHITE  "\033[97m"
 
 static const char *slog_level_color(slog_level level) {
     switch (level) {
