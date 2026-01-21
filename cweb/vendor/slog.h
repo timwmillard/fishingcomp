@@ -882,10 +882,10 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
     // Print attributes with colors
     for (size_t i = 0; i < record->attr_count; i++) {
         // Key in cyan
-        fprintf(data->output, " %s%s%s=", SLOG_COLOR_CYAN, record->attrs[i].key, SLOG_COLOR_RESET);
+        fprintf(data->output, " %s%s%s=", SLOG_COLOR_GREEN, record->attrs[i].key, SLOG_COLOR_RESET);
 
         // Value in green
-        fprintf(data->output, "%s", SLOG_COLOR_GREEN);
+        fprintf(data->output, "%s", SLOG_COLOR_DIM);
 
         switch (record->attrs[i].type) {
             case SLOG_TYPE_STRING:
