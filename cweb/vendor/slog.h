@@ -101,6 +101,7 @@ typedef struct slog_attr {
 // Record structure
 typedef struct slog_record {
     time_t time;
+    int time_ms;  // milliseconds (0-999)
     const char *message;
     slog_level level;
     const char *file;
@@ -424,7 +425,22 @@ static void slog_log_va(slog_logger *logger, slog_level level, const char *msg,
     
     // Create record
     slog_record record = {0};
-    record.time = time(NULL);
+#ifdef _WIN32
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    ULARGE_INTEGER uli;
+    uli.LowPart = ft.dwLowDateTime;
+    uli.HighPart = ft.dwHighDateTime;
+    // Convert to Unix time (100ns intervals since 1601 to seconds since 1970)
+    uint64_t ns100 = uli.QuadPart - 116444736000000000ULL;
+    record.time = (time_t)(ns100 / 10000000ULL);
+    record.time_ms = (int)((ns100 / 10000ULL) % 1000);
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    record.time = ts.tv_sec;
+    record.time_ms = (int)(ts.tv_nsec / 1000000);
+#endif
     record.message = msg;
     record.level = level;
     record.file = file;
@@ -586,9 +602,10 @@ static void slog_text_handler_handle(slog_handler *self, const slog_record *reco
     // Format: TIME LEVEL FILE:LINE MESSAGE key=value key=value...
     char time_buf[32];
     strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", localtime(&record->time));
-    
-    fprintf(data->output, "%s %s %s:%d %s",
+
+    fprintf(data->output, "%s.%03d %s %s:%d %s",
             time_buf,
+            record->time_ms,
             slog_level_string(record->level),
             record->file,
             record->line,
@@ -695,9 +712,11 @@ static void slog_json_handler_handle(slog_handler *self, const slog_record *reco
     slog_mutex_lock(&data->mutex);
     
     fprintf(data->output, "{");
-    
-    // Time
-    fprintf(data->output, "\"time\":\"%ld\",", record->time);
+
+    // Time (ISO 8601 format with milliseconds)
+    char time_buf[32];
+    strftime(time_buf, sizeof(time_buf), "%Y-%m-%dT%H:%M:%S", localtime(&record->time));
+    fprintf(data->output, "\"time\":\"%s.%03dZ\",", time_buf, record->time_ms);
     
     // Level
     fprintf(data->output, "\"level\":\"%s\",", slog_level_string(record->level));
@@ -830,7 +849,7 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
 
     slog_mutex_lock(&data->mutex);
 
-    // Format: Jan 21 17:10:03.000 |INFO| Message key=value key=value...
+    // Format: Jan 21 17:10:03.123 |INFO| Message key=value key=value...
     struct tm *tm_info = localtime(&record->time);
     char time_buf[32];
     strftime(time_buf, sizeof(time_buf), "%b %d %H:%M:%S", tm_info);
@@ -838,8 +857,8 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
     // Get level color
     const char *level_color = slog_level_color(record->level);
 
-    // Timestamp (dim)
-    fprintf(data->output, "%s%s.000%s ", SLOG_COLOR_DIM, time_buf, SLOG_COLOR_RESET);
+    // Timestamp (dim) with milliseconds
+    fprintf(data->output, "%s%s.%03d%s ", SLOG_COLOR_DIM, time_buf, record->time_ms, SLOG_COLOR_RESET);
 
     // Level with color and pipes
     fprintf(data->output, "|%s%s%s| ", level_color, slog_level_string(record->level), SLOG_COLOR_RESET);
