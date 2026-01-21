@@ -1,3 +1,5 @@
+#ifndef SQL_MODEL_H
+#define SQL_MODEL_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -112,3 +114,5 @@ typedef struct {
   sql_text PhotoUrl;
   sql_text Type;
 } Species;
+
+#endif

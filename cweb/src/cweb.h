@@ -1,7 +1,7 @@
-#include "sqlite3.h"
+#include "models.h"
 
 #define APP_NAME "fishingcomp"
 #define VERSION "0.0.1"
 
-static sqlite3 *db;
+sql_context sqlctx;
 

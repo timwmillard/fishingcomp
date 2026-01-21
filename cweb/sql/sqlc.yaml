@@ -3,7 +3,7 @@ plugins:
 - name: c
   wasm:
     url: file://bin/sqlc-gen-c.wasm
-    sha256: "5acccafd9685dc82feb9739c899263458ccd96544dc9ed35b46e840d81b67705"
+    sha256: "a5b5410519d9a99dc7d5355c7b0c32777f15f7c800653fdbfcd167491785166e"
 sql:
 - engine: "sqlite"
   queries: "queries.sql"
