@@ -179,6 +179,7 @@ void slog_error_impl(const char *msg, ...);
 // Built-in handlers
 slog_handler *slog_text_handler_new(FILE *output, slog_level min_level);
 slog_handler *slog_json_handler_new(FILE *output, slog_level min_level);
+slog_handler *slog_color_text_handler_new(FILE *output, slog_level min_level);
 
 // Utility functions
 const char *slog_level_string(slog_level level);
@@ -790,6 +791,137 @@ slog_handler *slog_json_handler_new(FILE *output, slog_level min_level) {
     handler->destroy = slog_text_handler_destroy;
     handler->data = data;
     
+    return handler;
+}
+
+// Color text handler implementation (humanlog-style)
+// ANSI color codes
+#define SLOG_COLOR_RESET   "\033[0m"
+#define SLOG_COLOR_DIM     "\033[2m"
+#define SLOG_COLOR_BOLD    "\033[1m"
+#define SLOG_COLOR_RED     "\033[31m"
+#define SLOG_COLOR_GREEN   "\033[32m"
+#define SLOG_COLOR_YELLOW  "\033[33m"
+#define SLOG_COLOR_BLUE    "\033[34m"
+#define SLOG_COLOR_MAGENTA "\033[35m"
+#define SLOG_COLOR_CYAN    "\033[36m"
+#define SLOG_COLOR_WHITE   "\033[37m"
+#define SLOG_COLOR_BRIGHT_RED    "\033[91m"
+#define SLOG_COLOR_BRIGHT_YELLOW "\033[93m"
+#define SLOG_COLOR_BRIGHT_CYAN   "\033[96m"
+
+static const char *slog_level_color(slog_level level) {
+    switch (level) {
+        case SLOG_DEBUG: return SLOG_COLOR_DIM;
+        case SLOG_INFO:  return SLOG_COLOR_CYAN;
+        case SLOG_WARN:  return SLOG_COLOR_YELLOW;
+        case SLOG_ERROR: return SLOG_COLOR_RED;
+        default: return SLOG_COLOR_RESET;
+    }
+}
+
+static void slog_color_text_handler_handle(slog_handler *self, const slog_record *record) {
+    if (!self || !self->data || !record) return;
+
+    slog_text_handler_data *data = (slog_text_handler_data*)self->data;
+
+    slog_mutex_lock(&data->mutex);
+
+    // Format: Jan 21 17:10:03.000 |INFO| Message key=value key=value...
+    struct tm *tm_info = localtime(&record->time);
+    char time_buf[32];
+    strftime(time_buf, sizeof(time_buf), "%b %d %H:%M:%S", tm_info);
+
+    // Get level color
+    const char *level_color = slog_level_color(record->level);
+
+    // Timestamp (dim)
+    fprintf(data->output, "%s%s.000%s ", SLOG_COLOR_DIM, time_buf, SLOG_COLOR_RESET);
+
+    // Level with color and pipes
+    fprintf(data->output, "|%s%s%s| ", level_color, slog_level_string(record->level), SLOG_COLOR_RESET);
+
+    // Message (white/normal)
+    fprintf(data->output, "%s", record->message);
+
+    // Print attributes with colors
+    for (size_t i = 0; i < record->attr_count; i++) {
+        // Key in cyan
+        fprintf(data->output, " %s%s%s=", SLOG_COLOR_CYAN, record->attrs[i].key, SLOG_COLOR_RESET);
+
+        // Value in green
+        fprintf(data->output, "%s", SLOG_COLOR_GREEN);
+
+        switch (record->attrs[i].type) {
+            case SLOG_TYPE_STRING:
+                fprintf(data->output, "%s", record->attrs[i].value.string_val);
+                break;
+            case SLOG_TYPE_BYTES:
+                fwrite(record->attrs[i].value.bytes_val.data, 1,
+                       record->attrs[i].value.bytes_val.len, data->output);
+                break;
+            case SLOG_TYPE_INT:
+                fprintf(data->output, "%d", record->attrs[i].value.int_val);
+                break;
+            case SLOG_TYPE_INT64:
+                fprintf(data->output, "%lld", (long long)record->attrs[i].value.int64_val);
+                break;
+            case SLOG_TYPE_UINT:
+                fprintf(data->output, "%u", record->attrs[i].value.uint_val);
+                break;
+            case SLOG_TYPE_UINT64:
+                fprintf(data->output, "%llu", (unsigned long long)record->attrs[i].value.uint64_val);
+                break;
+            case SLOG_TYPE_FLOAT:
+                fprintf(data->output, "%f", record->attrs[i].value.float_val);
+                break;
+            case SLOG_TYPE_DOUBLE:
+                fprintf(data->output, "%f", record->attrs[i].value.double_val);
+                break;
+            case SLOG_TYPE_BOOL:
+                fprintf(data->output, "%s", record->attrs[i].value.bool_val ? "true" : "false");
+                break;
+            case SLOG_TYPE_TIME:
+                fprintf(data->output, "%ld", record->attrs[i].value.time_val);
+                break;
+            case SLOG_TYPE_DURATION:
+                fprintf(data->output, "%lldns", (long long)record->attrs[i].value.duration_val);
+                break;
+            case SLOG_TYPE_GROUP:
+                fprintf(data->output, "{...}");
+                break;
+        }
+
+        fprintf(data->output, "%s", SLOG_COLOR_RESET);
+    }
+
+    fprintf(data->output, "\n");
+    fflush(data->output);
+
+    slog_mutex_unlock(&data->mutex);
+}
+
+slog_handler *slog_color_text_handler_new(FILE *output, slog_level min_level) {
+    slog_handler *handler = (slog_handler*)malloc(sizeof(slog_handler));
+    if (!handler) return NULL;
+
+    slog_text_handler_data *data = (slog_text_handler_data*)malloc(sizeof(slog_text_handler_data));
+    if (!data) {
+        free(handler);
+        return NULL;
+    }
+
+    data->output = output ? output : stdout;
+    data->min_level = min_level;
+    slog_mutex_init(&data->mutex);
+
+    handler->handle = slog_color_text_handler_handle;
+    handler->enabled = slog_text_handler_enabled;
+    handler->with_attrs = NULL;
+    handler->with_group = NULL;
+    handler->destroy = slog_text_handler_destroy;
+    handler->data = data;
+
     return handler;
 }
 

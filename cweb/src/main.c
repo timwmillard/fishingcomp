@@ -83,6 +83,8 @@ int main(int argc, char *argv[]) {
     slog_handler *log_handler;
     if (strcmp(*log_format, "json") == 0)
         log_handler = slog_json_handler_new(stdout, SLOG_INFO);
+    else if (strcmp(*log_format, "color") == 0)
+        log_handler = slog_color_text_handler_new(stdout, SLOG_INFO);
     else 
         log_handler = slog_text_handler_new(stdout, SLOG_INFO);
 
