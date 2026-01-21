@@ -1,7 +1,7 @@
 
+#include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 
 #include "sqlite3.h"
 
@@ -10,64 +10,66 @@ typedef unsigned char sql_byte;
 typedef double sql_double;
 
 typedef struct {
-  sql_double value;
-  bool is_null;
+    sql_double value;
+    bool null;
 } sql_nulldouble;
 
 typedef int sql_int;
 
 typedef struct {
-  sql_int value;
-  bool is_null;
+    sql_int value;
+    bool null;
 } sql_nullint;
 
 typedef int64_t sql_int64;
 
 typedef struct {
-  sql_int64 value;
-  bool is_null;
+    sql_int64 value;
+    bool null;
 } sql_nullint64;
 
 typedef double sql_numeric;
 
 typedef struct {
-  sql_numeric value;
-  bool is_null;
+    sql_numeric value;
+    bool null;
 } sql_nullnumeric;
 
 typedef bool sql_bool;
 
 typedef struct {
-  sql_bool value;
-  bool is_null;
+    sql_bool value;
+    bool null;
 } sql_nullbool;
 
 typedef struct {
-  sql_byte *data;
-  size_t len;
+    sql_byte *data;
+    size_t len;
 } sql_blob;
 
 typedef struct {
-  sql_byte *data;
-  size_t len;
-  bool is_null;
+    sql_byte *data;
+    size_t len;
+    bool null;
 } sql_nullblob;
 
 typedef struct {
-  char *data;
-  size_t len;
+    char *data;
+    size_t len;
 } sql_text;
 
 typedef struct {
-  char *data;
-  size_t len;
-  bool is_null;
+    char *data;
+    size_t len;
+    bool null;
 } sql_nulltext;
 
 typedef struct {
-  sqlite3 *db;
-  void *(*alloc)(void *, int);
+    sqlite3 *db;
+    void *(*alloc)(void*, int);
 } sql_context;
+
+
 
 typedef struct {
   sql_int64 ID;
@@ -76,16 +78,18 @@ typedef struct {
   sql_text BoatRego;
 } Boat;
 
+
 typedef struct {
   sql_int64 ID;
   sql_int64 CompetitorID;
   sql_int64 SpeciesID;
   sql_int64 Size;
-  void *CaughtAt;
+  void* CaughtAt;
   sql_text Bait;
   sql_text LocationName;
-  void *Location;
+  void* Location;
 } Catch;
+
 
 typedef struct {
   sql_int64 ID;
@@ -103,6 +107,7 @@ typedef struct {
   sql_nullint64 BoatID;
 } Competitor;
 
+
 typedef struct {
   sql_int64 ID;
   sql_text Name;
@@ -113,5 +118,4 @@ typedef struct {
   sql_text Type;
 } Species;
 
-int sql_GetCompetitor(sql_context *ctx, sql_int64 id, Competitor *result);
 

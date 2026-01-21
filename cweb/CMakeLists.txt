@@ -57,8 +57,8 @@ add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/src/models.h
     COMMAND go tool sqlc generate
     COMMAND clang-format -i ${CMAKE_SOURCE_DIR}/sql/model/models.h ${CMAKE_SOURCE_DIR}/sql/model/queries.sql.c
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/sql/model/models.h ${CMAKE_SOURCE_DIR}/src/models.h
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/sql/model/queries.sql.c ${CMAKE_SOURCE_DIR}/src/queries.c
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/sql/gen/models.h ${CMAKE_SOURCE_DIR}/src/models.h
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/sql/gen/queries.sql.c ${CMAKE_SOURCE_DIR}/src/queries.c
     DEPENDS ${CMAKE_SOURCE_DIR}/sql/schema.sql ${CMAKE_SOURCE_DIR}/sql/queries.sql 
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/sql
     COMMENT "Generating models with sqlc and formatting"

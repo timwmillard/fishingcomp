@@ -11,35 +11,35 @@ typedef double sql_double;
 
 typedef struct {
     sql_double value;
-    bool is_null;
+    bool null;
 } sql_nulldouble;
 
 typedef int sql_int;
 
 typedef struct {
     sql_int value;
-    bool is_null;
+    bool null;
 } sql_nullint;
 
 typedef int64_t sql_int64;
 
 typedef struct {
     sql_int64 value;
-    bool is_null;
+    bool null;
 } sql_nullint64;
 
 typedef double sql_numeric;
 
 typedef struct {
     sql_numeric value;
-    bool is_null;
+    bool null;
 } sql_nullnumeric;
 
 typedef bool sql_bool;
 
 typedef struct {
     sql_bool value;
-    bool is_null;
+    bool null;
 } sql_nullbool;
 
 typedef struct {
@@ -50,7 +50,7 @@ typedef struct {
 typedef struct {
     sql_byte *data;
     size_t len;
-    bool is_null;
+    bool null;
 } sql_nullblob;
 
 typedef struct {
@@ -61,7 +61,7 @@ typedef struct {
 typedef struct {
     char *data;
     size_t len;
-    bool is_null;
+    bool null;
 } sql_nulltext;
 
 typedef struct {
