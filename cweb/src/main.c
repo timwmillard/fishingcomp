@@ -3,9 +3,7 @@
 
 #include "ecewo.h"
 #include "sqlite3.h"
-#define SLOG_IMPLEMENTATION
 #include "slog.h"
-#define FLAG_IMPLEMENTATION
 #include "flag.h"
 
 #include "cweb.h"
@@ -81,21 +79,22 @@ int main(int argc, char *argv[]) {
     }
 
     slog_handler *log_handler;
+    slog_level level = SLOG_DEBUG;
     if (strcmp(*log_format, "json") == 0)
-        log_handler = slog_json_handler_new(stdout, SLOG_INFO);
+        log_handler = slog_json_handler_new(stdout, level);
     else if (strcmp(*log_format, "color") == 0)
-        log_handler = slog_color_text_handler_new(stdout, SLOG_INFO);
+        log_handler = slog_color_text_handler_new(stdout, level);
     else 
-        log_handler = slog_text_handler_new(stdout, SLOG_INFO);
+        log_handler = slog_text_handler_new(stdout, level);
 
     slog_logger *logger = slog_new(log_handler);
     slog_set_default(logger);
 
     server_set_log_handler(handle_ecewo_log);
-    server_set_log_level(LOG_LEVEL_INFO);
+    server_set_log_level((LogLevel)level);
 
-    const char *db_name = flag_shift_args(&argc, &argv);
-    if (db_name == NULL) db_name = "fishingcomp.db";
+    const char *db_name = "fishingcomp.db";
+    if (argc > 0) db_name = argv[0]; 
     db_open(db_name);
 
     int err;

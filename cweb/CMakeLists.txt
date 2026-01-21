@@ -68,6 +68,7 @@ add_custom_target(sqlc DEPENDS ${CMAKE_SOURCE_DIR}/src/models.h)
 add_executable(${PROJECT_NAME}
   src/main.c
   ${CMAKE_SOURCE_DIR}/vendor/sqlite3.c
+  ${CMAKE_SOURCE_DIR}/vendor/unit.c
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

@@ -503,11 +503,11 @@ SLOG_DEFAULT_FUNC(error, SLOG_ERROR)
 // Utility functions
 const char *slog_level_string(slog_level level) {
     switch (level) {
-        case SLOG_DEBUG: return "DEBUG";
+        case SLOG_DEBUG: return "DEBU";
         case SLOG_INFO:  return "INFO";
         case SLOG_WARN:  return "WARN";
-        case SLOG_ERROR: return "ERROR";
-        default: return "UNKNOWN";
+        case SLOG_ERROR: return "ERRO";
+        default: return "????";
     }
 }
 
@@ -815,7 +815,7 @@ slog_handler *slog_json_handler_new(FILE *output, slog_level min_level) {
 
 static const char *slog_level_color(slog_level level) {
     switch (level) {
-        case SLOG_DEBUG: return SLOG_COLOR_DIM;
+        case SLOG_DEBUG: return SLOG_COLOR_BLUE;
         case SLOG_INFO:  return SLOG_COLOR_CYAN;
         case SLOG_WARN:  return SLOG_COLOR_YELLOW;
         case SLOG_ERROR: return SLOG_COLOR_RED;
