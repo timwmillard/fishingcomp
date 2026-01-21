@@ -519,10 +519,10 @@ SLOG_DEFAULT_FUNC(error, SLOG_ERROR)
 // Utility functions
 const char *slog_level_string(slog_level level) {
     switch (level) {
-        case SLOG_DEBUG: return "DEBU";
+        case SLOG_DEBUG: return "DEBUB";
         case SLOG_INFO:  return "INFO";
         case SLOG_WARN:  return "WARN";
-        case SLOG_ERROR: return "ERRO";
+        case SLOG_ERROR: return "ERROR";
         default: return "????";
     }
 }
@@ -594,22 +594,35 @@ typedef struct {
 
 static void slog_text_handler_handle(slog_handler *self, const slog_record *record) {
     if (!self || !self->data || !record) return;
-    
-    slog_text_handler_data *data = (slog_text_handler_data*)self->data;
-    
-    slog_mutex_lock(&data->mutex);
-    
-    // Format: TIME LEVEL FILE:LINE MESSAGE key=value key=value...
-    char time_buf[32];
-    strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", localtime(&record->time));
 
-    fprintf(data->output, "%s.%03d %s %s:%d %s",
+    slog_text_handler_data *data = (slog_text_handler_data*)self->data;
+
+    slog_mutex_lock(&data->mutex);
+
+    // Format: time=2026-01-21T23:40:16.933+11:00 level=INFO msg="message" key=value...
+    struct tm *tm_info = localtime(&record->time);
+    char time_buf[32];
+    strftime(time_buf, sizeof(time_buf), "%Y-%m-%dT%H:%M:%S", tm_info);
+
+    // Get timezone offset
+    char tz_buf[8];
+#ifdef _WIN32
+    TIME_ZONE_INFORMATION tz_info;
+    GetTimeZoneInformation(&tz_info);
+    int tz_offset_min = -tz_info.Bias;
+#else
+    int tz_offset_min = (int)(tm_info->tm_gmtoff / 60);
+#endif
+    int tz_hours = tz_offset_min / 60;
+    int tz_mins = abs(tz_offset_min % 60);
+    snprintf(tz_buf, sizeof(tz_buf), "%+03d:%02d", tz_hours, tz_mins);
+
+    fprintf(data->output, "time=%s.%03d%s level=%s msg=",
             time_buf,
             record->time_ms,
-            slog_level_string(record->level),
-            record->file,
-            record->line,
-            record->message);
+            tz_buf,
+            slog_level_string(record->level));
+    slog_write_text_escaped(data->output, record->message, -1);
     
     // Print attributes
     for (size_t i = 0; i < record->attr_count; i++) {
