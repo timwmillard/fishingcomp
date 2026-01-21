@@ -7,6 +7,7 @@
 #include "models.h"
 
 int sql_GetCompetitor(sql_context *ctx, sql_int64 id, Competitor *result);
+int sql_GetCompetitor_cb(sql_context *ctx, sql_int64 id, void (*cb)(Competitor *, void*), void *userdata);
 
 void health(Req *req, Res *res) {
     send_json(res, OK, "{\"version\": \"" VERSION "\"}\n");
@@ -24,6 +25,41 @@ void get_user(Req *req, Res *res) {
     send_json(res, OK, res_body);
 }
 
+void get_competitor_res(Competitor *comp, void *data) {
+    Res *res = data;
+    char *body = arena_sprintf(res->arena, 
+            "{\n"
+            "  \"id\": %d,\n"
+            "  \"first_name\": \"%s\",\n"
+            "  \"last_name\": \"%s\"\n"
+            "}\n",
+            comp->ID, comp->FirstName.data, comp->LastName.data
+    );
+    send_json(res, OK, body);
+}
+
+void get_competitor_v2(Req *req, Res *res) {
+    const char *id_str = get_param(req, "id");
+    int id = atoi(id_str);
+
+    slog_debug("Competitor getting",
+            slog_int("id", id)
+    );
+
+    Competitor comp;
+    int rc = sql_GetCompetitor_cb(&sqlctx, id, get_competitor_res, res);
+    if (rc != SQLITE_OK) {
+        slog_error("Competitor not found",
+                slog_int("id", id)
+        );
+        send_json(res, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
+        return;
+    }
+
+    slog_info("Competitor get",
+            slog_int("id", id)
+    );
+}
 
 void get_competitor(Req *req, Res *res) {
     const char *id_str = get_param(req, "id");
@@ -80,4 +116,5 @@ void routes() {
     get("/hello", hello);
     get("/users/:id", get_user);
     get("/v1/competitors/:id", get_competitor);
+    get("/v2/competitors/:id", get_competitor_v2);
 }
