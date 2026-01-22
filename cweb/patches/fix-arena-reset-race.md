@@ -20,19 +20,18 @@ The crash occurs in libuv's `uv__write_callbacks` when it tries to access the `u
 
 ### Root Cause
 
-The issue is a lifetime mismatch between arena-allocated write buffers and asynchronous write operations:
+The request arena was being used for both HTTP parsing and write buffers, but these have different lifetimes:
 
-1. **Request 1** arrives on a keep-alive connection
-2. Server allocates `write_req_t` and response buffer from the connection arena
-3. `uv_write()` is called - the write is now **pending** in libuv's queue
-4. The write callback fires and calls `arena_reset()`
-5. **But**: libuv may still reference the `uv_write_t` struct after the callback returns
-6. Or: another write from the same connection is still pending when `arena_reset()` is called
-7. The reset invalidates memory that libuv is still using, causing corruption
+1. Request arrives, HTTP context allocated from arena
+2. Response and `write_req_t` allocated from same arena
+3. `uv_write()` called - write is now pending
+4. Write callback fires, calls `arena_reset()`
+5. But libuv may still reference the `uv_write_t`, or another write is still pending
+6. Memory corruption occurs
 
 ### Evidence
 
-Debugging with lldb showed the corrupted `uv_write_t` struct:
+Debugging with lldb showed corrupted `uv_write_t` struct:
 
 ```
 (lldb) p *req
@@ -40,49 +39,49 @@ Debugging with lldb showed the corrupted `uv_write_t` struct:
   cb = 0x0000000000000000      // Should be write_completion_cb
   bufs = 0xffffffff00000000    // Corrupted pointer
   nbufs = 4294967295           // Garbage value
-  ...
 }
 ```
 
-The `bufs` pointer `0xffffffff00000000` indicates memory that was overwritten after being freed/reset.
-
 ## Solution
 
-The fix decouples write buffer lifetime from the arena by using `malloc` for all write operations instead of arena allocation.
+Borrow a separate arena from the pool for each write operation. This decouples write buffer lifetime from the request arena:
 
-### Key Changes
+- **Request arena** - HTTP parsing, reset between requests
+- **Write arena** - borrowed per-write via `arena_borrow()`, returned via `arena_return()` when write completes
 
-1. **Remove arena field from write_req_t** - no longer needed
-2. **Always use malloc for write buffers** - response string and write_req_t struct
-3. **Reset arena before the write** - after copying needed data to malloc'd buffer
-4. **Free in callback** - simple free() of malloc'd buffers
+### Changes
 
-### Why This Works
+**`write_completion_cb`**:
+```c
+// Before
+arena_reset(write_req->arena);
 
-- The arena is reset immediately after building the response (before `uv_write`)
-- Write buffers are independently allocated and freed
-- No lifetime coupling between arena and pending writes
-- The callback simply frees the malloc'd memory when the write completes
+// After
+arena_return(write_req->arena);
+```
 
-### Trade-off
+**`send_error`**:
+- Reset passed arena immediately (it's the request arena)
+- Borrow a separate `write_arena` for the write operation
+- Use `write_arena` for response buffer and `write_req_t`
+- Return `write_arena` on errors or in callback
 
-This approach uses malloc per response instead of arena allocation. The performance impact is minimal because:
-- Response buffers are typically small
-- Modern allocators handle small allocations efficiently
-- The arena is still used for HTTP parsing (method, URL, headers, body)
-- Correctness is more important than micro-optimization
+**`reply`**:
+- Build headers using request arena (temporary)
+- Borrow `write_arena` for response buffer and `write_req_t`
+- Copy response data to `write_arena`
+- Reset request arena after copy (safe - data is in write_arena)
+- Return `write_arena` on errors or in callback
 
 ## Files Modified
 
-- `src/response.c` - Use malloc for write buffers, reset arena before write
+- `src/response.c`
 
 ## Testing
-
-The fix was verified with:
 
 ```bash
 wrk -c 2000 -t 8 -d 30s http://localhost:9000/health
 ```
 
-Before the fix: Crashes within seconds with malloc errors.
-After the fix: Completes successfully with no memory errors.
+Before: Crashes within seconds with malloc errors.
+After: Completes successfully with no memory errors.

@@ -1,5 +1,5 @@
 --- a/src/response.c	2026-01-22 14:05:48
-+++ b/src/response.c	2026-01-23 00:50:45
++++ b/src/response.c	2026-01-23 00:52:23
 @@ -45,7 +45,7 @@
      end_request(write_req->client);
  
@@ -50,7 +50,7 @@
      write_req->client = (client_t *)client_socket->data;
  
      write_req->buf = uv_buf_init(response, (unsigned int)response_len);
-@@ -122,12 +126,12 @@
+@@ -122,7 +126,7 @@
                         &write_req->buf, 1, write_completion_cb);
      if (res < 0) {
        LOG_ERROR("Write error: %s", uv_strerror(res));
@@ -59,12 +59,6 @@
  
        if (write_req->client)
          end_request(write_req->client);
-     }
--  } else {
-+  } else if (!write_arena) {
-     // Malloc path
-     // This is necessary for early errors
-     // that don't have arena yet
 @@ -276,8 +280,15 @@
    size_t headers_len = strlen(headers);
    size_t total_len = headers_len + body_len;
