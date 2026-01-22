@@ -1,83 +1,121 @@
---- a/src/server.h	2026-01-22 14:05:49
-+++ b/src/server.h	2026-01-22 13:58:40
-@@ -27,6 +27,7 @@
-   http_context_t persistent_context; // Struct embedded in client; its buffers live in connection_arena
-   bool parser_initialized;
-   bool request_in_progress; // True while parsing a multi-packet request
-+  uint32_t pending_writes;  // Count of pending uv_write requests using connection_arena
- 
-   bool taken_over;
-   void *takeover_user_data;
-
---- a/src/server.c	2026-01-22 14:05:48
-+++ b/src/server.c	2026-01-22 14:05:59
-@@ -278,7 +278,7 @@
- }
- 
- static void client_context_init(client_t *client) {
--  if (!client || !client->connection_arena)
-+  if (!client || !client->connection_arena || client->pending_writes > 0)
-     return;
- 
-   if (!client->parser_initialized) {
-@@ -292,7 +292,7 @@
- }
- 
- static void client_context_reset(client_t *client) {
--  if (!client || !client->connection_arena)
-+  if (!client || !client->connection_arena || client->pending_writes > 0)
-     return;
- 
-   arena_reset(client->connection_arena);
-
 --- a/src/response.c	2026-01-22 14:05:48
-+++ b/src/response.c	2026-01-22 14:06:54
-@@ -45,7 +45,10 @@
++++ b/src/response.c	2026-01-23 00:50:45
+@@ -45,7 +45,7 @@
      end_request(write_req->client);
  
    if (write_req->arena) {
 -    arena_reset(write_req->arena);
-+    // Decrement pending writes counter - arena will be reset by client_context_reset
-+    // when a new request starts and pending_writes reaches 0
-+    if (write_req->client && write_req->client->pending_writes > 0)
-+      write_req->client->pending_writes--;
++    arena_return(write_req->arena);
    } else {
      // Malloc fallback
      if (write_req->data) {
-@@ -118,10 +121,17 @@
+@@ -83,8 +83,12 @@
+   const char *body = status_text;
+   size_t body_len = strlen(body);
+ 
+-  if (arena) {
+-    char *response = arena_sprintf(arena,
++  if (arena)
++    arena_reset(arena);
++
++  Arena *write_arena = arena_borrow();
++  if (write_arena) {
++    char *response = arena_sprintf(write_arena,
+                                    "HTTP/1.1 %d %s\r\n"
+                                    "Date: %s\r\n"
+                                    "Content-Type: text/plain\r\n"
+@@ -99,21 +103,21 @@
+                                    body);
+ 
+     if (!response) {
+-      arena_reset(arena);
++      arena_return(write_arena);
+       return;
+     }
+ 
+     size_t response_len = strlen(response);
+ 
+-    write_req_t *write_req = arena_alloc(arena, sizeof(write_req_t));
++    write_req_t *write_req = arena_alloc(write_arena, sizeof(write_req_t));
+     if (!write_req) {
+-      arena_reset(arena);
++      arena_return(write_arena);
+       return;
+     }
+ 
+     memset(&write_req->req, 0, sizeof(uv_write_t));
+     write_req->data = response;
+-    write_req->arena = arena;
++    write_req->arena = write_arena;
+     write_req->client = (client_t *)client_socket->data;
  
      write_req->buf = uv_buf_init(response, (unsigned int)response_len);
- 
-+    // Increment pending writes before uv_write
-+    if (write_req->client)
-+      write_req->client->pending_writes++;
-+
-     int res = uv_write(&write_req->req, (uv_stream_t *)client_socket,
+@@ -122,12 +126,12 @@
                         &write_req->buf, 1, write_completion_cb);
      if (res < 0) {
        LOG_ERROR("Write error: %s", uv_strerror(res));
-+      // Decrement on failure since callback won't be called
-+      if (write_req->client && write_req->client->pending_writes > 0)
-+        write_req->client->pending_writes--;
-       arena_reset(arena);
+-      arena_reset(arena);
++      arena_return(write_arena);
  
        if (write_req->client)
-@@ -303,11 +313,18 @@
+         end_request(write_req->client);
+     }
+-  } else {
++  } else if (!write_arena) {
+     // Malloc path
+     // This is necessary for early errors
+     // that don't have arena yet
+@@ -276,8 +280,15 @@
+   size_t headers_len = strlen(headers);
+   size_t total_len = headers_len + body_len;
+ 
+-  char *response = arena_alloc(res->arena, total_len);
++  Arena *write_arena = arena_borrow();
++  if (!write_arena) {
++    send_error(res->arena, res->client_socket, 500);
++    return;
++  }
++
++  char *response = arena_alloc(write_arena, total_len);
+   if (!response) {
++    arena_return(write_arena);
+     send_error(res->arena, res->client_socket, 500);
+     return;
+   }
+@@ -286,20 +297,23 @@
+   if (body_len > 0 && body)
+     memcpy(response + headers_len, body, body_len);
+ 
+-  write_req_t *write_req = arena_alloc(res->arena, sizeof(write_req_t));
++  arena_reset(res->arena);
++
++  write_req_t *write_req = arena_alloc(write_arena, sizeof(write_req_t));
+   if (!write_req) {
+-    send_error(res->arena, res->client_socket, 500);
++    arena_return(write_arena);
++    send_error(NULL, res->client_socket, 500);
      return;
    }
  
-+  // Increment pending writes before uv_write
-+  if (write_req->client)
-+    write_req->client->pending_writes++;
-+
-   int result = uv_write(&write_req->req, (uv_stream_t *)res->client_socket,
-                         &write_req->buf, 1, write_completion_cb);
+   memset(write_req, 0, sizeof(write_req_t));
+   write_req->data = response;
+-  write_req->arena = res->arena;
++  write_req->arena = write_arena;
+   write_req->client = (client_t *)res->client_socket->data;
+   write_req->buf = uv_buf_init(response, (unsigned int)total_len);
+ 
+   if (uv_is_closing((uv_handle_t *)res->client_socket)) {
+-    arena_reset(res->arena);
++    arena_return(write_arena);
+     return;
+   }
+ 
+@@ -308,7 +322,7 @@
  
    if (result < 0) {
      LOG_DEBUG("Write error: %s", uv_strerror(result));
-+    // Decrement on failure since callback won't be called
-+    if (write_req->client && write_req->client->pending_writes > 0)
-+      write_req->client->pending_writes--;
-     arena_reset(res->arena);
+-    arena_reset(res->arena);
++    arena_return(write_arena);
  
      if (write_req->client)
+       end_request(write_req->client);
