@@ -93,6 +93,10 @@ int main(int argc, char *argv[]) {
     server_set_log_handler(handle_ecewo_log);
     server_set_log_level((LogLevel)level);
 
+    slog_info("Logger started",
+                 slog_string("min_log_level", slog_level_string(level))
+                 );
+
     const char *db_name = "fishingcomp.db";
     if (argc > 0) db_name = argv[0]; 
     db_open(db_name);

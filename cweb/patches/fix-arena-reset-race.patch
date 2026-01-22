@@ -1,0 +1,83 @@
+--- a/src/server.h	2026-01-22 14:05:49
++++ b/src/server.h	2026-01-22 13:58:40
+@@ -27,6 +27,7 @@
+   http_context_t persistent_context; // Struct embedded in client; its buffers live in connection_arena
+   bool parser_initialized;
+   bool request_in_progress; // True while parsing a multi-packet request
++  uint32_t pending_writes;  // Count of pending uv_write requests using connection_arena
+ 
+   bool taken_over;
+   void *takeover_user_data;
+
+--- a/src/server.c	2026-01-22 14:05:48
++++ b/src/server.c	2026-01-22 14:05:59
+@@ -278,7 +278,7 @@
+ }
+ 
+ static void client_context_init(client_t *client) {
+-  if (!client || !client->connection_arena)
++  if (!client || !client->connection_arena || client->pending_writes > 0)
+     return;
+ 
+   if (!client->parser_initialized) {
+@@ -292,7 +292,7 @@
+ }
+ 
+ static void client_context_reset(client_t *client) {
+-  if (!client || !client->connection_arena)
++  if (!client || !client->connection_arena || client->pending_writes > 0)
+     return;
+ 
+   arena_reset(client->connection_arena);
+
+--- a/src/response.c	2026-01-22 14:05:48
++++ b/src/response.c	2026-01-22 14:06:54
+@@ -45,7 +45,10 @@
+     end_request(write_req->client);
+ 
+   if (write_req->arena) {
+-    arena_reset(write_req->arena);
++    // Decrement pending writes counter - arena will be reset by client_context_reset
++    // when a new request starts and pending_writes reaches 0
++    if (write_req->client && write_req->client->pending_writes > 0)
++      write_req->client->pending_writes--;
+   } else {
+     // Malloc fallback
+     if (write_req->data) {
+@@ -118,10 +121,17 @@
+ 
+     write_req->buf = uv_buf_init(response, (unsigned int)response_len);
+ 
++    // Increment pending writes before uv_write
++    if (write_req->client)
++      write_req->client->pending_writes++;
++
+     int res = uv_write(&write_req->req, (uv_stream_t *)client_socket,
+                        &write_req->buf, 1, write_completion_cb);
+     if (res < 0) {
+       LOG_ERROR("Write error: %s", uv_strerror(res));
++      // Decrement on failure since callback won't be called
++      if (write_req->client && write_req->client->pending_writes > 0)
++        write_req->client->pending_writes--;
+       arena_reset(arena);
+ 
+       if (write_req->client)
+@@ -303,11 +313,18 @@
+     return;
+   }
+ 
++  // Increment pending writes before uv_write
++  if (write_req->client)
++    write_req->client->pending_writes++;
++
+   int result = uv_write(&write_req->req, (uv_stream_t *)res->client_socket,
+                         &write_req->buf, 1, write_completion_cb);
+ 
+   if (result < 0) {
+     LOG_DEBUG("Write error: %s", uv_strerror(result));
++    // Decrement on failure since callback won't be called
++    if (write_req->client && write_req->client->pending_writes > 0)
++      write_req->client->pending_writes--;
+     arena_reset(res->arena);
+ 
+     if (write_req->client)

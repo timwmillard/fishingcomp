@@ -11,8 +11,7 @@ FetchContent_Declare(
   GIT_TAG working
   # GIT_TAG v3.1.0
   GIT_SHALLOW TRUE
-  PATCH_COMMAND patch -p1 -N < ${CMAKE_SOURCE_DIR}/patches/fix-bind-segfault.patch || true
-  # COMMAND patch -p1 -N < ${CMAKE_SOURCE_DIR}/patches/fix-macos-reuseport.patch || true
+  # PATCH_COMMAND patch -p1 -N < ${CMAKE_SOURCE_DIR}/patches/fix-arena-reset-race.patch || true
 )
 
 file(DOWNLOAD
