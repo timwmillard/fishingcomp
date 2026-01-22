@@ -111,6 +111,14 @@ typedef struct slog_record {
     size_t attr_count;
 } slog_record;
 
+#ifdef _WIN32
+    #include <windows.h>
+    typedef CRITICAL_SECTION slog_mutex;
+#else
+    #include <pthread.h>
+    typedef pthread_mutex_t slog_mutex;
+#endif
+
 // Handler interface
 typedef struct slog_handler {
     void (*handle)(struct slog_handler *self, const slog_record *record);
@@ -118,7 +126,12 @@ typedef struct slog_handler {
     struct slog_handler *(*with_attrs)(struct slog_handler *self, const slog_attr *attrs, size_t count);
     struct slog_handler *(*with_group)(struct slog_handler *self, const char *name);
     void (*destroy)(struct slog_handler *self);
-    void *data; // Handler-specific data
+
+    // handler data
+    FILE *output;
+    slog_level min_level;
+    slog_mutex mutex;
+    void *data; // handler-specific data
 } slog_handler;
 
 // Logger structure
@@ -200,15 +213,11 @@ bool slog_enabled(slog_logger *logger, slog_level level);
 
 // Thread safety - use pthread on Unix, Windows threads on Windows
 #ifdef _WIN32
-    #include <windows.h>
-    typedef CRITICAL_SECTION slog_mutex;
     #define slog_mutex_init(m) InitializeCriticalSection(m)
     #define slog_mutex_lock(m) EnterCriticalSection(m)
     #define slog_mutex_unlock(m) LeaveCriticalSection(m)
     #define slog_mutex_destroy(m) DeleteCriticalSection(m)
 #else
-    #include <pthread.h>
-    typedef pthread_mutex_t slog_mutex;
     #define slog_mutex_init(m) pthread_mutex_init(m, NULL)
     #define slog_mutex_lock(m) pthread_mutex_lock(m)
     #define slog_mutex_unlock(m) pthread_mutex_unlock(m)
@@ -585,19 +594,10 @@ static void slog_write_text_escaped(FILE *output, const char *str, size_t len) {
     fputc('"', output);
 }
 
-// Simple text handler implementation
-typedef struct {
-    FILE *output;
-    slog_level min_level;
-    slog_mutex mutex;
-} slog_text_handler_data;
-
 static void slog_text_handler_handle(slog_handler *self, const slog_record *record) {
-    if (!self || !self->data || !record) return;
+    if (!self || !record) return;
 
-    slog_text_handler_data *data = (slog_text_handler_data*)self->data;
-
-    slog_mutex_lock(&data->mutex);
+    slog_mutex_lock(&self->mutex);
 
     // Format: time=2026-01-21T23:40:16.933+11:00 level=INFO msg="message" key=value...
     struct tm *tm_info = localtime(&record->time);
@@ -617,78 +617,73 @@ static void slog_text_handler_handle(slog_handler *self, const slog_record *reco
     int tz_mins = abs(tz_offset_min % 60);
     snprintf(tz_buf, sizeof(tz_buf), "%+03d:%02d", tz_hours, tz_mins);
 
-    fprintf(data->output, "time=%s.%03d%s level=%s msg=",
+    fprintf(self->output, "time=%s.%03d%s level=%s msg=",
             time_buf,
             record->time_ms,
             tz_buf,
             slog_level_string(record->level));
-    slog_write_text_escaped(data->output, record->message, -1);
+    slog_write_text_escaped(self->output, record->message, -1);
     
     // Print attributes
     for (size_t i = 0; i < record->attr_count; i++) {
-        fprintf(data->output, " %s=", record->attrs[i].key);
+        fprintf(self->output, " %s=", record->attrs[i].key);
 
         switch (record->attrs[i].type) {
             case SLOG_TYPE_STRING:
-                slog_write_text_escaped(data->output, record->attrs[i].value.string_val, -1);
+                slog_write_text_escaped(self->output, record->attrs[i].value.string_val, -1);
                 break;
             case SLOG_TYPE_BYTES:
-                slog_write_text_escaped(data->output,
+                slog_write_text_escaped(self->output,
                     record->attrs[i].value.bytes_val.data,
                     record->attrs[i].value.bytes_val.len);
                 break;
             case SLOG_TYPE_INT:
-                fprintf(data->output, "%d", record->attrs[i].value.int_val);
+                fprintf(self->output, "%d", record->attrs[i].value.int_val);
                 break;
             case SLOG_TYPE_INT64:
-                fprintf(data->output, "%lld", (long long)record->attrs[i].value.int64_val);
+                fprintf(self->output, "%lld", (long long)record->attrs[i].value.int64_val);
                 break;
             case SLOG_TYPE_UINT:
-                fprintf(data->output, "%u", record->attrs[i].value.uint_val);
+                fprintf(self->output, "%u", record->attrs[i].value.uint_val);
                 break;
             case SLOG_TYPE_UINT64:
-                fprintf(data->output, "%llu", (unsigned long long)record->attrs[i].value.uint64_val);
+                fprintf(self->output, "%llu", (unsigned long long)record->attrs[i].value.uint64_val);
                 break;
             case SLOG_TYPE_FLOAT:
-                fprintf(data->output, "%f", record->attrs[i].value.float_val);
+                fprintf(self->output, "%f", record->attrs[i].value.float_val);
                 break;
             case SLOG_TYPE_DOUBLE:
-                fprintf(data->output, "%f", record->attrs[i].value.double_val);
+                fprintf(self->output, "%f", record->attrs[i].value.double_val);
                 break;
             case SLOG_TYPE_BOOL:
-                fprintf(data->output, "%s", record->attrs[i].value.bool_val ? "true" : "false");
+                fprintf(self->output, "%s", record->attrs[i].value.bool_val ? "true" : "false");
                 break;
             case SLOG_TYPE_TIME:
-                fprintf(data->output, "%ld", record->attrs[i].value.time_val);
+                fprintf(self->output, "%ld", record->attrs[i].value.time_val);
                 break;
             case SLOG_TYPE_DURATION:
-                fprintf(data->output, "%lldns", (long long)record->attrs[i].value.duration_val);
+                fprintf(self->output, "%lldns", (long long)record->attrs[i].value.duration_val);
                 break;
             case SLOG_TYPE_GROUP:
-                fprintf(data->output, "{...}");
+                fprintf(self->output, "{...}");
                 break;
         }
     }
     
-    fprintf(data->output, "\n");
-    fflush(data->output);
+    fprintf(self->output, "\n");
+    fflush(self->output);
     
-    slog_mutex_unlock(&data->mutex);
+    slog_mutex_unlock(&self->mutex);
 }
 
 static bool slog_text_handler_enabled(slog_handler *self, slog_level level) {
-    if (!self || !self->data) return false;
-    slog_text_handler_data *data = (slog_text_handler_data*)self->data;
-    return level >= data->min_level;
+    if (!self) return false;
+    return level >= self->min_level;
 }
 
 static void slog_text_handler_destroy(slog_handler *self) {
     if (!self) return;
-    if (self->data) {
-        slog_text_handler_data *data = (slog_text_handler_data*)self->data;
-        slog_mutex_destroy(&data->mutex);
-        free(data);
-    }
+    slog_mutex_destroy(&self->mutex);
     free(self);
 }
 
@@ -696,132 +691,116 @@ slog_handler *slog_text_handler_new(FILE *output, slog_level min_level) {
     slog_handler *handler = (slog_handler*)malloc(sizeof(slog_handler));
     if (!handler) return NULL;
     
-    slog_text_handler_data *data = (slog_text_handler_data*)malloc(sizeof(slog_text_handler_data));
-    if (!data) {
-        free(handler);
-        return NULL;
-    }
-    
-    data->output = output ? output : stdout;
-    data->min_level = min_level;
-    slog_mutex_init(&data->mutex);
+    handler->output = output ? output : stdout;
+    handler->min_level = min_level;
+    slog_mutex_init(&handler->mutex);
     
     handler->handle = slog_text_handler_handle;
     handler->enabled = slog_text_handler_enabled;
     handler->with_attrs = NULL; // Simplified - would need implementation
     handler->with_group = NULL; // Simplified - would need implementation
     handler->destroy = slog_text_handler_destroy;
-    handler->data = data;
     
     return handler;
 }
 
 // JSON handler implementation
 static void slog_json_handler_handle(slog_handler *self, const slog_record *record) {
-    if (!self || !self->data || !record) return;
+    if (!self || !record) return;
     
-    slog_text_handler_data *data = (slog_text_handler_data*)self->data;
+    slog_mutex_lock(&self->mutex);
     
-    slog_mutex_lock(&data->mutex);
-    
-    fprintf(data->output, "{");
+    fprintf(self->output, "{");
 
     // Time (ISO 8601 format with milliseconds)
     char time_buf[32];
     strftime(time_buf, sizeof(time_buf), "%Y-%m-%dT%H:%M:%S", localtime(&record->time));
-    fprintf(data->output, "\"time\":\"%s.%03dZ\",", time_buf, record->time_ms);
+    fprintf(self->output, "\"time\":\"%s.%03dZ\",", time_buf, record->time_ms);
     
     // Level
-    fprintf(data->output, "\"level\":\"%s\",", slog_level_string(record->level));
+    fprintf(self->output, "\"level\":\"%s\",", slog_level_string(record->level));
     
 
     if (record->level == SLOG_DEBUG) {
         // Source
-        fprintf(data->output, "\"source\":{\"file\":\"%s\",\"line\":%d,\"function\":\"%s\"},",
+        fprintf(self->output, "\"source\":{\"file\":\"%s\",\"line\":%d,\"function\":\"%s\"},",
                 record->file, record->line, record->function);
     }
     
     // Message
-    fprintf(data->output, "\"msg\":\"");
-    slog_write_json_escaped(data->output, record->message, -1);
-    fprintf(data->output, "\"");
+    fprintf(self->output, "\"msg\":\"");
+    slog_write_json_escaped(self->output, record->message, -1);
+    fprintf(self->output, "\"");
 
     // Attributes
     for (size_t i = 0; i < record->attr_count; i++) {
-        fprintf(data->output, ",\"%s\":", record->attrs[i].key);
+        fprintf(self->output, ",\"%s\":", record->attrs[i].key);
 
         switch (record->attrs[i].type) {
             case SLOG_TYPE_STRING:
-                fprintf(data->output, "\"");
-                slog_write_json_escaped(data->output, record->attrs[i].value.string_val, -1);
-                fprintf(data->output, "\"");
+                fprintf(self->output, "\"");
+                slog_write_json_escaped(self->output, record->attrs[i].value.string_val, -1);
+                fprintf(self->output, "\"");
                 break;
             case SLOG_TYPE_BYTES:
-                fprintf(data->output, "\"");
-                slog_write_json_escaped(data->output,
+                fprintf(self->output, "\"");
+                slog_write_json_escaped(self->output,
                     record->attrs[i].value.bytes_val.data,
                     record->attrs[i].value.bytes_val.len);
-                fprintf(data->output, "\"");
+                fprintf(self->output, "\"");
                 break;
             case SLOG_TYPE_INT:
-                fprintf(data->output, "%d", record->attrs[i].value.int_val);
+                fprintf(self->output, "%d", record->attrs[i].value.int_val);
                 break;
             case SLOG_TYPE_INT64:
-                fprintf(data->output, "%lld", (long long)record->attrs[i].value.int64_val);
+                fprintf(self->output, "%lld", (long long)record->attrs[i].value.int64_val);
                 break;
             case SLOG_TYPE_UINT:
-                fprintf(data->output, "%u", record->attrs[i].value.uint_val);
+                fprintf(self->output, "%u", record->attrs[i].value.uint_val);
                 break;
             case SLOG_TYPE_UINT64:
-                fprintf(data->output, "%llu", (unsigned long long)record->attrs[i].value.uint64_val);
+                fprintf(self->output, "%llu", (unsigned long long)record->attrs[i].value.uint64_val);
                 break;
             case SLOG_TYPE_FLOAT:
-                fprintf(data->output, "%f", record->attrs[i].value.float_val);
+                fprintf(self->output, "%f", record->attrs[i].value.float_val);
                 break;
             case SLOG_TYPE_DOUBLE:
-                fprintf(data->output, "%f", record->attrs[i].value.double_val);
+                fprintf(self->output, "%f", record->attrs[i].value.double_val);
                 break;
             case SLOG_TYPE_BOOL:
-                fprintf(data->output, "%s", record->attrs[i].value.bool_val ? "true" : "false");
+                fprintf(self->output, "%s", record->attrs[i].value.bool_val ? "true" : "false");
                 break;
             case SLOG_TYPE_TIME:
-                fprintf(data->output, "%ld", record->attrs[i].value.time_val);
+                fprintf(self->output, "%ld", record->attrs[i].value.time_val);
                 break;
             case SLOG_TYPE_DURATION:
-                fprintf(data->output, "%lld", (long long)record->attrs[i].value.duration_val);
+                fprintf(self->output, "%lld", (long long)record->attrs[i].value.duration_val);
                 break;
             case SLOG_TYPE_GROUP:
-                fprintf(data->output, "{}");
+                fprintf(self->output, "{}");
                 break;
         }
     }
     
-    fprintf(data->output, "}\n");
-    fflush(data->output);
+    fprintf(self->output, "}\n");
+    fflush(self->output);
     
-    slog_mutex_unlock(&data->mutex);
+    slog_mutex_unlock(&self->mutex);
 }
 
 slog_handler *slog_json_handler_new(FILE *output, slog_level min_level) {
     slog_handler *handler = (slog_handler*)malloc(sizeof(slog_handler));
     if (!handler) return NULL;
     
-    slog_text_handler_data *data = (slog_text_handler_data*)malloc(sizeof(slog_text_handler_data));
-    if (!data) {
-        free(handler);
-        return NULL;
-    }
-    
-    data->output = output ? output : stdout;
-    data->min_level = min_level;
-    slog_mutex_init(&data->mutex);
+    handler->output = output ? output : stdout;
+    handler->min_level = min_level;
+    slog_mutex_init(&handler->mutex);
     
     handler->handle = slog_json_handler_handle;
     handler->enabled = slog_text_handler_enabled;
     handler->with_attrs = NULL;
     handler->with_group = NULL;
     handler->destroy = slog_text_handler_destroy;
-    handler->data = data;
     
     return handler;
 }
@@ -850,11 +829,9 @@ static const char *slog_level_color(slog_level level) {
 }
 
 static void slog_color_text_handler_handle(slog_handler *self, const slog_record *record) {
-    if (!self || !self->data || !record) return;
+    if (!self || !record) return;
 
-    slog_text_handler_data *data = (slog_text_handler_data*)self->data;
-
-    slog_mutex_lock(&data->mutex);
+    slog_mutex_lock(&self->mutex);
 
     // Format: Jan 21 17:10:03.123 |INFO| Message key=value key=value...
     struct tm *tm_info = localtime(&record->time);
@@ -865,91 +842,84 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
     const char *level_color = slog_level_color(record->level);
 
     // Timestamp (dim) with milliseconds
-    fprintf(data->output, "%s%s.%03d%s ", SLOG_COLOR_DIM, time_buf, record->time_ms, SLOG_COLOR_RESET);
+    fprintf(self->output, "%s%s.%03d%s ", SLOG_COLOR_DIM, time_buf, record->time_ms, SLOG_COLOR_RESET);
 
     // Level with color and pipes (4 chars max)
-    fprintf(data->output, "|%s%.4s%s| ", level_color, slog_level_string(record->level), SLOG_COLOR_RESET);
+    fprintf(self->output, "|%s%.4s%s| ", level_color, slog_level_string(record->level), SLOG_COLOR_RESET);
 
     // Message (white/normal)
-    fprintf(data->output, "%s", record->message);
+    fprintf(self->output, "%s", record->message);
 
     // Print attributes with colors
     for (size_t i = 0; i < record->attr_count; i++) {
         // Key in cyan
-        fprintf(data->output, " %s%s%s=", SLOG_COLOR_GREEN, record->attrs[i].key, SLOG_COLOR_RESET);
+        fprintf(self->output, " %s%s%s=", SLOG_COLOR_GREEN, record->attrs[i].key, SLOG_COLOR_RESET);
 
         // Value in green
-        fprintf(data->output, "%s", SLOG_COLOR_DIM);
+        fprintf(self->output, "%s", SLOG_COLOR_DIM);
 
         switch (record->attrs[i].type) {
             case SLOG_TYPE_STRING:
-                fprintf(data->output, "%s", record->attrs[i].value.string_val);
+                fprintf(self->output, "%s", record->attrs[i].value.string_val);
                 break;
             case SLOG_TYPE_BYTES:
                 fwrite(record->attrs[i].value.bytes_val.data, 1,
-                       record->attrs[i].value.bytes_val.len, data->output);
+                       record->attrs[i].value.bytes_val.len, self->output);
                 break;
             case SLOG_TYPE_INT:
-                fprintf(data->output, "%d", record->attrs[i].value.int_val);
+                fprintf(self->output, "%d", record->attrs[i].value.int_val);
                 break;
             case SLOG_TYPE_INT64:
-                fprintf(data->output, "%lld", (long long)record->attrs[i].value.int64_val);
+                fprintf(self->output, "%lld", (long long)record->attrs[i].value.int64_val);
                 break;
             case SLOG_TYPE_UINT:
-                fprintf(data->output, "%u", record->attrs[i].value.uint_val);
+                fprintf(self->output, "%u", record->attrs[i].value.uint_val);
                 break;
             case SLOG_TYPE_UINT64:
-                fprintf(data->output, "%llu", (unsigned long long)record->attrs[i].value.uint64_val);
+                fprintf(self->output, "%llu", (unsigned long long)record->attrs[i].value.uint64_val);
                 break;
             case SLOG_TYPE_FLOAT:
-                fprintf(data->output, "%f", record->attrs[i].value.float_val);
+                fprintf(self->output, "%f", record->attrs[i].value.float_val);
                 break;
             case SLOG_TYPE_DOUBLE:
-                fprintf(data->output, "%f", record->attrs[i].value.double_val);
+                fprintf(self->output, "%f", record->attrs[i].value.double_val);
                 break;
             case SLOG_TYPE_BOOL:
-                fprintf(data->output, "%s", record->attrs[i].value.bool_val ? "true" : "false");
+                fprintf(self->output, "%s", record->attrs[i].value.bool_val ? "true" : "false");
                 break;
             case SLOG_TYPE_TIME:
-                fprintf(data->output, "%ld", record->attrs[i].value.time_val);
+                fprintf(self->output, "%ld", record->attrs[i].value.time_val);
                 break;
             case SLOG_TYPE_DURATION:
-                fprintf(data->output, "%lldns", (long long)record->attrs[i].value.duration_val);
+                fprintf(self->output, "%lldns", (long long)record->attrs[i].value.duration_val);
                 break;
             case SLOG_TYPE_GROUP:
-                fprintf(data->output, "{...}");
+                fprintf(self->output, "{...}");
                 break;
         }
 
-        fprintf(data->output, "%s", SLOG_COLOR_RESET);
+        fprintf(self->output, "%s", SLOG_COLOR_RESET);
     }
 
-    fprintf(data->output, "\n");
-    fflush(data->output);
+    fprintf(self->output, "\n");
+    fflush(self->output);
 
-    slog_mutex_unlock(&data->mutex);
+    slog_mutex_unlock(&self->mutex);
 }
 
 slog_handler *slog_color_text_handler_new(FILE *output, slog_level min_level) {
     slog_handler *handler = (slog_handler*)malloc(sizeof(slog_handler));
     if (!handler) return NULL;
 
-    slog_text_handler_data *data = (slog_text_handler_data*)malloc(sizeof(slog_text_handler_data));
-    if (!data) {
-        free(handler);
-        return NULL;
-    }
-
-    data->output = output ? output : stdout;
-    data->min_level = min_level;
-    slog_mutex_init(&data->mutex);
+    handler->output = output ? output : stdout;
+    handler->min_level = min_level;
+    slog_mutex_init(&handler->mutex);
 
     handler->handle = slog_color_text_handler_handle;
     handler->enabled = slog_text_handler_enabled;
     handler->with_attrs = NULL;
     handler->with_group = NULL;
     handler->destroy = slog_text_handler_destroy;
-    handler->data = data;
 
     return handler;
 }
