@@ -10,8 +10,16 @@ int sql_GetCompetitor(sql_context *ctx, sql_int64 id, Competitor *result);
 int sql_GetCompetitor_cb(sql_context *ctx, sql_int64 id, void (*cb)(Competitor *, void*), void *userdata);
 
 void health(Req *req, Res *res) {
+    // int rc = sqlite3_db_readonly(sqlctx.db, "main");
+    int rc = sqlite3_exec(sqlctx.db, "SELECT 1", NULL, NULL, NULL);
     // res->keep_alive = 0;  // Disable keep-alive
-    send_json(res, OK, "{\"version\": \"" VERSION "\"}\n");
+    
+    char *body = arena_sprintf(req->arena, 
+            "{\n"
+            "  \"version\": \"" VERSION "\",\n"
+            "  \"db_connected\": %s\n"
+            "}\n", rc==SQLITE_OK?"true":"false");
+    send_json(res, OK, body);
 }
 
 void get_log_level_handle(Req *req, Res *res) {
@@ -108,21 +116,29 @@ void get_competitor(Req *req, Res *res) {
     const char *id_str = get_param(req, "id");
     int id = atoi(id_str);
 
-    slog_debug("Competitor getting",
-            slog_int("id", id)
-    );
-
     Competitor comp;
     int rc = sql_GetCompetitor(&sqlctx, id, &comp);
-    if (rc != SQLITE_OK) {
-        slog_error("Competitor not found",
-                slog_int("id", id)
-        );
-        send_json(res, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
-        return;
+    switch (rc) {
+        case SQLITE_OK: break;
+        case SQLITE_NOTFOUND:
+            slog_debug("Competitor not found",
+                    slog_int("id", id),
+                    slog_string("error", sqlite3_errstr(rc)),
+                    slog_int("error_code", rc)
+            );
+            send_json(res, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
+            return;
+        default:
+            slog_error("Competitor get error",
+                    slog_int("id", id),
+                    slog_string("error", sqlite3_errstr(rc)),
+                    slog_int("error_code", rc)
+            );
+            send_json(res, INTERNAL_SERVER_ERROR, "{\"error\": \"something when wrong\"}\n");
+            return;
     }
 
-    slog_info("Competitor get",
+    slog_debug("Competitor get",
             slog_int("id", id)
     );
 
