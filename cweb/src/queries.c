@@ -37,17 +37,17 @@ int sql_CreateCompetitor(sql_context *ctx, CreateCompetitorParams arg,
   rc = sqlite3_step(stmt);
   if (rc == SQLITE_ROW) {
     result->ID = sqlite3_column_int64(stmt, 0);
-    result->CompetitorNo.data = (char *)sqlite3_column_text(stmt, 1);
-    result->FirstName.data = (char *)sqlite3_column_text(stmt, 2);
-    result->LastName.data = (char *)sqlite3_column_text(stmt, 3);
-    result->Email.data = (char *)sqlite3_column_text(stmt, 4);
-    result->Mobile.data = (char *)sqlite3_column_text(stmt, 5);
-    result->Phone.data = (char *)sqlite3_column_text(stmt, 6);
-    result->Address1.data = (char *)sqlite3_column_text(stmt, 7);
-    result->Address2.data = (char *)sqlite3_column_text(stmt, 8);
-    result->Suburb.data = (char *)sqlite3_column_text(stmt, 9);
-    result->State.data = (char *)sqlite3_column_text(stmt, 10);
-    result->Postcode.data = (char *)sqlite3_column_text(stmt, 11);
+    result->CompetitorNo.data = sqlite3_column_text(stmt, 1);
+    result->FirstName.data = sqlite3_column_text(stmt, 2);
+    result->LastName.data = sqlite3_column_text(stmt, 3);
+    result->Email.data = sqlite3_column_text(stmt, 4);
+    result->Mobile.data = sqlite3_column_text(stmt, 5);
+    result->Phone.data = sqlite3_column_text(stmt, 6);
+    result->Address1.data = sqlite3_column_text(stmt, 7);
+    result->Address2.data = sqlite3_column_text(stmt, 8);
+    result->Suburb.data = sqlite3_column_text(stmt, 9);
+    result->State.data = sqlite3_column_text(stmt, 10);
+    result->Postcode.data = sqlite3_column_text(stmt, 11);
     // Unknow type sql_nullint64 for BoatID
     sqlite3_finalize(stmt);
     return SQLITE_OK;
@@ -126,17 +126,17 @@ int sql_GetCompetitor_cb(sql_context *ctx, sql_int64 id, void (*cb)(Competitor *
   if (rc == SQLITE_ROW) {
     Competitor result;
     result.ID = sqlite3_column_int64(stmt, 0);
-    result.CompetitorNo.data = (char *)sqlite3_column_text(stmt, 1);
-    result.FirstName.data = (char *)sqlite3_column_text(stmt, 2);
-    result.LastName.data = (char *)sqlite3_column_text(stmt, 3);
-    result.Email.data = (char *)sqlite3_column_text(stmt, 4);
-    result.Mobile.data = (char *)sqlite3_column_text(stmt, 5);
-    result.Phone.data = (char *)sqlite3_column_text(stmt, 6);
-    result.Address1.data = (char *)sqlite3_column_text(stmt, 7);
-    result.Address2.data = (char *)sqlite3_column_text(stmt, 8);
-    result.Suburb.data = (char *)sqlite3_column_text(stmt, 9);
-    result.State.data = (char *)sqlite3_column_text(stmt, 10);
-    result.Postcode.data = (char *)sqlite3_column_text(stmt, 11);
+    result.CompetitorNo.data = sqlite3_column_text(stmt, 1);
+    result.FirstName.data = sqlite3_column_text(stmt, 2);
+    result.LastName.data = sqlite3_column_text(stmt, 3);
+    result.Email.data = sqlite3_column_text(stmt, 4);
+    result.Mobile.data = sqlite3_column_text(stmt, 5);
+    result.Phone.data = sqlite3_column_text(stmt, 6);
+    result.Address1.data = sqlite3_column_text(stmt, 7);
+    result.Address2.data = sqlite3_column_text(stmt, 8);
+    result.Suburb.data = sqlite3_column_text(stmt, 9);
+    result.State.data = sqlite3_column_text(stmt, 10);
+    result.Postcode.data = sqlite3_column_text(stmt, 11);
     cb(&result, userdata);
     // Unknow type sql_nullint64 for BoatID
     sqlite3_finalize(stmt);
@@ -167,17 +167,17 @@ int sql_ListCompetitors(sql_context *ctx, Competitor **result,
   int row = 0;
   while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
     result[row]->ID = sqlite3_column_int64(stmt, 0);
-    result[row]->CompetitorNo.data = (char *)sqlite3_column_text(stmt, 1);
-    result[row]->FirstName.data = (char *)sqlite3_column_text(stmt, 2);
-    result[row]->LastName.data = (char *)sqlite3_column_text(stmt, 3);
-    result[row]->Email.data = (char *)sqlite3_column_text(stmt, 4);
-    result[row]->Mobile.data = (char *)sqlite3_column_text(stmt, 5);
-    result[row]->Phone.data = (char *)sqlite3_column_text(stmt, 6);
-    result[row]->Address1.data = (char *)sqlite3_column_text(stmt, 7);
-    result[row]->Address2.data = (char *)sqlite3_column_text(stmt, 8);
-    result[row]->Suburb.data = (char *)sqlite3_column_text(stmt, 9);
-    result[row]->State.data = (char *)sqlite3_column_text(stmt, 10);
-    result[row]->Postcode.data = (char *)sqlite3_column_text(stmt, 11);
+    result[row]->CompetitorNo.data = sqlite3_column_text(stmt, 1);
+    result[row]->FirstName.data = sqlite3_column_text(stmt, 2);
+    result[row]->LastName.data = sqlite3_column_text(stmt, 3);
+    result[row]->Email.data = sqlite3_column_text(stmt, 4);
+    result[row]->Mobile.data = sqlite3_column_text(stmt, 5);
+    result[row]->Phone.data = sqlite3_column_text(stmt, 6);
+    result[row]->Address1.data = sqlite3_column_text(stmt, 7);
+    result[row]->Address2.data = sqlite3_column_text(stmt, 8);
+    result[row]->Suburb.data = sqlite3_column_text(stmt, 9);
+    result[row]->State.data = sqlite3_column_text(stmt, 10);
+    result[row]->Postcode.data = sqlite3_column_text(stmt, 11);
     // Unknow type sql_nullint64 for BoatID
     row++;
   }

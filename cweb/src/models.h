@@ -12,36 +12,36 @@ typedef unsigned char sql_byte;
 typedef double sql_double;
 
 typedef struct {
-  sql_double value;
-  bool null;
+  sql_double data;
+  bool valid;
 } sql_nulldouble;
 
 typedef int sql_int;
 
 typedef struct {
-  sql_int value;
-  bool null;
+  sql_int data;
+  bool valid;
 } sql_nullint;
 
 typedef int64_t sql_int64;
 
 typedef struct {
-  sql_int64 value;
-  bool null;
+  sql_int64 data;
+  bool valid;
 } sql_nullint64;
 
 typedef double sql_numeric;
 
 typedef struct {
-  sql_numeric value;
-  bool null;
+  sql_numeric data;
+  bool valid;
 } sql_nullnumeric;
 
 typedef bool sql_bool;
 
 typedef struct {
-  sql_bool value;
-  bool null;
+  sql_bool data;
+  bool valid;
 } sql_nullbool;
 
 typedef struct {
@@ -52,18 +52,18 @@ typedef struct {
 typedef struct {
   sql_byte *data;
   size_t len;
-  bool null;
+  bool valid;
 } sql_nullblob;
 
 typedef struct {
-  char *data;
+  const sql_byte *data;
   size_t len;
 } sql_text;
 
 typedef struct {
-  char *data;
+  const sql_byte *data;
   size_t len;
-  bool null;
+  bool valid;
 } sql_nulltext;
 
 typedef struct {
