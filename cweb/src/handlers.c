@@ -10,6 +10,7 @@ int sql_GetCompetitor(sql_context *ctx, sql_int64 id, Competitor *result);
 int sql_GetCompetitor_cb(sql_context *ctx, sql_int64 id, void (*cb)(Competitor *, void*), void *userdata);
 
 void health(Req *req, Res *res) {
+    // res->keep_alive = 0;  // Disable keep-alive
     send_json(res, OK, "{\"version\": \"" VERSION "\"}\n");
 }
 
@@ -29,7 +30,7 @@ void get_competitor_res(Competitor *comp, void *data) {
     Res *res = data;
     char *body = arena_sprintf(res->arena, 
             "{\n"
-            "  \"id\": %d,\n"
+            "  \"id\": %lld"",\n"
             "  \"first_name\": \"%s\",\n"
             "  \"last_name\": \"%s\"\n"
             "}\n",
@@ -85,7 +86,7 @@ void get_competitor(Req *req, Res *res) {
 
     char *res_body = arena_sprintf(res->arena, 
             "{\n"
-            "  \"id\": %d,\n"
+            "  \"id\": %lld,\n"
             "  \"first_name\": \"%s\",\n"
             "  \"last_name\": \"%s\"\n"
             "}\n",

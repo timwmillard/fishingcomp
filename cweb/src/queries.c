@@ -81,17 +81,17 @@ int sql_GetCompetitor(sql_context *ctx, sql_int64 id, Competitor *result) {
   rc = sqlite3_step(stmt);
   if (rc == SQLITE_ROW) {
     result->ID = sqlite3_column_int64(stmt, 0);
-    result->CompetitorNo.data = strdup((const char *)sqlite3_column_text(stmt, 1));
+    // result->CompetitorNo.data = strdup((const char *)sqlite3_column_text(stmt, 1));
     result->FirstName.data = strdup((const char *)sqlite3_column_text(stmt, 2));
     result->LastName.data = strdup((const char *)sqlite3_column_text(stmt, 3));
-    result->Email.data = strdup((const char *)sqlite3_column_text(stmt, 4));
-    result->Mobile.data = strdup((const char *)sqlite3_column_text(stmt, 5));
-    result->Phone.data = strdup((const char *)sqlite3_column_text(stmt, 6));
-    result->Address1.data = strdup((const char *)sqlite3_column_text(stmt, 7));
-    result->Address2.data = strdup((const char *)sqlite3_column_text(stmt, 8));
-    result->Suburb.data = strdup((const char *)sqlite3_column_text(stmt, 9));
-    result->State.data = strdup((const char *)sqlite3_column_text(stmt, 10));
-    result->Postcode.data = strdup((const char *)sqlite3_column_text(stmt, 11));
+    // result->Email.data = strdup((const char *)sqlite3_column_text(stmt, 4));
+    // result->Mobile.data = strdup((const char *)sqlite3_column_text(stmt, 5));
+    // result->Phone.data = strdup((const char *)sqlite3_column_text(stmt, 6));
+    // result->Address1.data = strdup((const char *)sqlite3_column_text(stmt, 7));
+    // result->Address2.data = strdup((const char *)sqlite3_column_text(stmt, 8));
+    // result->Suburb.data = strdup((const char *)sqlite3_column_text(stmt, 9));
+    // result->State.data = strdup((const char *)sqlite3_column_text(stmt, 10));
+    // result->Postcode.data = strdup((const char *)sqlite3_column_text(stmt, 11));
     // Unknow type sql_nullint64 for BoatID
     sqlite3_finalize(stmt);
     return SQLITE_OK;
