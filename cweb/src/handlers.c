@@ -174,6 +174,9 @@ void get_competitor_v1(Req *req, Res *res) {
 void api_get_competitor_res(Competitor *comp, void *data) {
     Res *res = data;
 
+    slog_info("Competitor get",
+            slog_int("id", comp->ID)
+    );
     char *body = competitor_to_json(&(api_Competitor){
             .id = comp->ID,
             .first_name = (char*)comp->FirstName.data,
@@ -207,10 +210,6 @@ void api_get_competitor(Req *req, Res *res) {
         send_json(res, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
         return;
     }
-
-    slog_info("Competitor get",
-            slog_int("id", id)
-    );
 }
 
 // POST /competitors - Create a competitor
