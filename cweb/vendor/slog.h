@@ -626,7 +626,7 @@ static void slog_text_handler_handle(slog_handler *self, const slog_record *reco
 
     // Print source info for debug level
     if (record->level == SLOG_DEBUG) {
-        fprintf(self->output, " source=%s:%d", record->file, record->line);
+        fprintf(self->output, " source=\"%s:%d (%s)\"", record->file, record->line, record->function);
     }
 
     // Print attributes
@@ -857,9 +857,9 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
 
     // Print source info for debug level
     if (record->level == SLOG_DEBUG) {
-        fprintf(self->output, " %ssource%s=%s%s:%d%s",
+        fprintf(self->output, " %ssource%s=%s\"%s:%d (%s)\"%s",
                 SLOG_COLOR_GREEN, SLOG_COLOR_RESET, SLOG_COLOR_DIM,
-                record->file, record->line, SLOG_COLOR_RESET);
+                record->file, record->line, record->function, SLOG_COLOR_RESET);
     }
 
     // Print attributes with colors
