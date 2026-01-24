@@ -1,10 +1,10 @@
 // Generated from OpenAPI spec - do not edit
-// No external JSON library required
 
-#include "api.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+#include "api.h"
 
 // ============ JSON Helper Functions ============
 

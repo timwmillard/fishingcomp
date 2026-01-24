@@ -1,0 +1,7 @@
+# oapi2c configuration file
+spec: spec.yaml
+output: gen/api.h
+struct-style: pascal
+field-style: snake
+func-style: snake
+gen-json: true

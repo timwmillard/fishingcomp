@@ -1,7 +1,7 @@
+// Generated from OpenAPI spec - do not edit
+
 #ifndef API_H
 #define API_H
-
-// Generated from OpenAPI spec - do not edit
 
 #include <stdint.h>
 #include <stdbool.h>

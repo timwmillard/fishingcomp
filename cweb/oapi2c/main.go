@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"gopkg.in/yaml.v3"
 )
 
 type NamingStyle string
@@ -18,6 +19,16 @@ const (
 	CamelCase  NamingStyle = "camel"
 	PascalCase NamingStyle = "pascal"
 )
+
+// Config holds all configuration options
+type Config struct {
+	Spec        string `yaml:"spec"`
+	Output      string `yaml:"output"`
+	StructStyle string `yaml:"struct-style"`
+	FieldStyle  string `yaml:"field-style"`
+	FuncStyle   string `yaml:"func-style"`
+	GenJSON     bool   `yaml:"gen-json"`
+}
 
 // FieldInfo stores information about a struct field for JSON generation
 type FieldInfo struct {
@@ -54,14 +65,82 @@ type Generator struct {
 	structs     []StructInfo // Collected struct info for JSON generation
 }
 
+func loadConfig(path string) (*Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
 func main() {
-	specPath := flag.String("spec", "openapi.yaml", "Path to OpenAPI spec file")
-	output := flag.String("output", "api.h", "Output header file")
-	structStyle := flag.String("struct-style", "pascal", "Naming style for structs: snake, camel, pascal")
-	fieldStyle := flag.String("field-style", "snake", "Naming style for fields: snake, camel, pascal")
-	funcStyle := flag.String("func-style", "snake", "Naming style for functions: snake, camel, pascal")
-	genJSON := flag.Bool("gen-json", false, "Generate JSON marshal/unmarshal functions")
+	// Default config
+	cfg := Config{
+		Spec:        "openapi.yaml",
+		Output:      "api.h",
+		StructStyle: "pascal",
+		FieldStyle:  "snake",
+		FuncStyle:   "snake",
+		GenJSON:     false,
+	}
+
+	// First pass: just look for -config flag
+	configPath := ""
+	for i, arg := range os.Args[1:] {
+		if arg == "-config" && i+1 < len(os.Args)-1 {
+			configPath = os.Args[i+2]
+			break
+		}
+		if strings.HasPrefix(arg, "-config=") {
+			configPath = strings.TrimPrefix(arg, "-config=")
+			break
+		}
+	}
+
+	// Load config file if specified
+	if configPath != "" {
+		fileCfg, err := loadConfig(configPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+			os.Exit(1)
+		}
+		// Apply config file values (only non-empty values)
+		if fileCfg.Spec != "" {
+			cfg.Spec = fileCfg.Spec
+		}
+		if fileCfg.Output != "" {
+			cfg.Output = fileCfg.Output
+		}
+		if fileCfg.StructStyle != "" {
+			cfg.StructStyle = fileCfg.StructStyle
+		}
+		if fileCfg.FieldStyle != "" {
+			cfg.FieldStyle = fileCfg.FieldStyle
+		}
+		if fileCfg.FuncStyle != "" {
+			cfg.FuncStyle = fileCfg.FuncStyle
+		}
+		if fileCfg.GenJSON {
+			cfg.GenJSON = true
+		}
+	}
+
+	// Define flags with config values as defaults
+	configFlag := flag.String("config", "", "Path to config file (YAML)")
+	specPath := flag.String("spec", cfg.Spec, "Path to OpenAPI spec file")
+	output := flag.String("output", cfg.Output, "Output header file")
+	structStyle := flag.String("struct-style", cfg.StructStyle, "Naming style for structs: snake, camel, pascal")
+	fieldStyle := flag.String("field-style", cfg.FieldStyle, "Naming style for fields: snake, camel, pascal")
+	funcStyle := flag.String("func-style", cfg.FuncStyle, "Naming style for functions: snake, camel, pascal")
+	genJSON := flag.Bool("gen-json", cfg.GenJSON, "Generate JSON marshal/unmarshal functions")
 	flag.Parse()
+
+	// Suppress unused warning
+	_ = configFlag
 
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(*specPath)
@@ -85,6 +164,14 @@ func main() {
 
 	gen.generate(*output)
 
+	// Create output directory if needed
+	if dir := filepath.Dir(*output); dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating directory: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
 	if err := os.WriteFile(*output, []byte(gen.out.String()), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing output: %v\n", err)
 		os.Exit(1)
@@ -104,10 +191,10 @@ func main() {
 
 func (g *Generator) generate(outputFile string) {
 	// Header guard
-	guardName := strings.ToUpper(strings.ReplaceAll(outputFile, ".", "_"))
+	guardName := strings.ToUpper(strings.ReplaceAll(filepath.Base(outputFile), ".", "_"))
+	g.out.WriteString("// Generated from OpenAPI spec - do not edit\n\n")
 	g.out.WriteString(fmt.Sprintf("#ifndef %s\n", guardName))
 	g.out.WriteString(fmt.Sprintf("#define %s\n\n", guardName))
-	g.out.WriteString("// Generated from OpenAPI spec - do not edit\n\n")
 	g.out.WriteString("#include <stdint.h>\n")
 	g.out.WriteString("#include <stdbool.h>\n")
 	g.out.WriteString("#include <stddef.h>\n\n")
@@ -411,12 +498,11 @@ func (g *Generator) generateJSONDeclarations() {
 }
 
 func (g *Generator) generateJSONImplementation(headerFile string) {
-	g.jsonOut.WriteString("// Generated from OpenAPI spec - do not edit\n")
-	g.jsonOut.WriteString("// No external JSON library required\n\n")
-	g.jsonOut.WriteString(fmt.Sprintf("#include \"%s\"\n", headerFile))
+	g.jsonOut.WriteString("// Generated from OpenAPI spec - do not edit\n\n")
 	g.jsonOut.WriteString("#include <stdlib.h>\n")
 	g.jsonOut.WriteString("#include <string.h>\n")
 	g.jsonOut.WriteString("#include <stdio.h>\n\n")
+	g.jsonOut.WriteString(fmt.Sprintf("#include \"%s\"\n\n", filepath.Base(headerFile)))
 
 	// Generate helper functions
 	g.generateJSONHelpers()
