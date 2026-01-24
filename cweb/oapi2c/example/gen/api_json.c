@@ -199,6 +199,25 @@ static int write_escaped(char *buf, size_t size, const char *str) {
     return len;
 }
 
+const char *catch_status_to_string(CatchStatus val) {
+    switch (val) {
+        case CATCH_STATUS_PENDING: return "pending";
+        case CATCH_STATUS_VERIFIED: return "verified";
+        case CATCH_STATUS_DISPUTED: return "disputed";
+        case CATCH_STATUS_REJECTED: return "rejected";
+        default: return NULL;
+    }
+}
+
+CatchStatus catch_status_from_string(const char *str) {
+    if (str == NULL) return 0;
+    if (strcmp(str, "pending") == 0) return CATCH_STATUS_PENDING;
+    if (strcmp(str, "verified") == 0) return CATCH_STATUS_VERIFIED;
+    if (strcmp(str, "disputed") == 0) return CATCH_STATUS_DISPUTED;
+    if (strcmp(str, "rejected") == 0) return CATCH_STATUS_REJECTED;
+    return 0;
+}
+
 // Forward declarations
 static const char *boat_parse(const char *json, Boat *obj);
 static int boat_write(char *buf, size_t size, Boat *obj);
@@ -306,6 +325,8 @@ static int catch_write(char *buf, size_t size, Catch *obj) {
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"points\":%g", (double)obj->points);
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"species\":");
     len += species_write(buf + len, size > (size_t)len ? size - len : 0, obj->species);
+    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"status\":");
+    len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, catch_status_to_string(obj->status));
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"verified\":%s", obj->verified ? "true" : "false");
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"weight_kg\":%g", (double)obj->weight_kg);
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "}");
@@ -369,6 +390,13 @@ static const char *catch_parse(const char *json, Catch *obj) {
     if (p != NULL) {
         obj->species = calloc(1, sizeof(Species));
         if (obj->species) species_parse(p, obj->species);
+    }
+
+    p = find_key(json, "status");
+    if (p != NULL) {
+        char *str = parse_string(p, &p);
+        obj->status = catch_status_from_string(str);
+        free(str);
     }
 
     p = find_key(json, "verified");

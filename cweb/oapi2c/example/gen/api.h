@@ -11,6 +11,16 @@
 typedef struct Req Req;
 typedef struct Res Res;
 
+// ============ Enums ============
+
+// Status of a catch verification
+typedef enum {
+    CATCH_STATUS_PENDING,
+    CATCH_STATUS_VERIFIED,
+    CATCH_STATUS_DISPUTED,
+    CATCH_STATUS_REJECTED
+} CatchStatus;
+
 // Struct forward declarations
 typedef struct Boat Boat;
 typedef struct Catch Catch;
@@ -50,6 +60,8 @@ struct Catch {
     double points;
     // A fish species that can be caught
     Species *species;
+    // Status of a catch verification
+    CatchStatus status;
     // Whether the catch has been verified by officials
     bool verified;
     // Weight of the catch in kilograms
@@ -105,6 +117,10 @@ struct Species {
 };
 
 // ============ JSON Functions ============
+
+// String conversion for CatchStatus
+const char *catch_status_to_string(CatchStatus val);
+CatchStatus catch_status_from_string(const char *str);
 
 // JSON serialization for Boat
 char *boat_to_json(Boat *obj);

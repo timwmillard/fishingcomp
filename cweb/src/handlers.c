@@ -188,7 +188,7 @@ void api_get_competitor_res(Competitor *comp, void *data) {
 void sql2api_competitor(Competitor *comp, void *data) {
     api_Competitor *api = data;
     api->id = comp->ID;
-    api->first_name = strdup((char*)comp->FirstName.data);
+    api->first_name = strdup((char*)comp->FirstName.data);  // TODO: better without strdup??
     api->last_name = strdup((char*)comp->LastName.data);
 }
 
@@ -212,14 +212,31 @@ void api_get_competitor(Req *req, Res *res) {
     }
 }
 
+typedef struct {
+    Req *req;
+    Res *res;
+    int status;
+    char *body;
+} context;
+
+static void response(context *ctx, int status, char *body) {
+    ctx->status = status;
+    ctx->body = body;
+}
+
 // POST /competitors - Create a competitor
-void api_create_competitor(Req *req, Res *res) {
+void api_create_competitor(void *cx) {
+    context *ctx = cx;
     slog_debug("Competitor creating");
+    Req *req = ctx->req;
+    Res *res = ctx->res;
 
     api_Competitor body;
     int rc = competitor_from_json(req->body, &body);
     if (rc != 0) {
-        send_json(res, BAD_REQUEST, "{\"error\": \"malformed json\"}\n");
+        slog_error("Competitor bad request");
+        response(ctx, BAD_REQUEST, "{\"error\": \"malformed json\"}\n");
+        return;
     }
 
     api_Competitor result;
@@ -230,7 +247,7 @@ void api_create_competitor(Req *req, Res *res) {
         }, sql2api_competitor, &result);
     if (rc != SQLITE_OK) {
         slog_error("Competitor create failed");
-        send_json(res, INTERNAL_SERVER_ERROR, "{\"error\": \"create competior failed\"}\n");
+        response(ctx, INTERNAL_SERVER_ERROR, "{\"error\": \"create competior failed\"}\n");
         return;
     }
 
@@ -240,8 +257,19 @@ void api_create_competitor(Req *req, Res *res) {
             slog_string("last_name", result.last_name)
             );
 
-    send_json(res, OK, competitor_to_json(&result));
+    response(ctx, OK, competitor_to_json(&result));
+}
 
+void work_done_send_json(void *cx) {
+    context *ctx = cx;
+    send_json(ctx->res, ctx->status, ctx->body);
+}
+
+void create_competitor_v3(Req *req, Res *res) {
+    context *ctx = arena_alloc(req->arena, sizeof(context));
+    ctx->req = req;
+    ctx->res = res;
+    spawn(ctx, api_create_competitor, work_done_send_json);
 }
 
 void routes() {
@@ -257,4 +285,7 @@ void routes() {
     // API
     get("/api/competitors/:id", api_get_competitor);
     post("/api/competitors", api_create_competitor);
+
+    // API v3
+    post("/v3/competitors", create_competitor_v3);
 }

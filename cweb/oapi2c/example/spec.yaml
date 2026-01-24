@@ -127,6 +127,15 @@ paths:
 
 components:
   schemas:
+    CatchStatus:
+      type: string
+      description: Status of a catch verification
+      enum:
+        - pending
+        - verified
+        - disputed
+        - rejected
+
     Competitor:
       type: object
       description: A competitor in the fishing competition
@@ -234,6 +243,8 @@ components:
         verified:
           type: boolean
           description: Whether the catch has been verified by officials
+        status:
+          $ref: '#/components/schemas/CatchStatus'
 
     LeaderboardEntry:
       type: object

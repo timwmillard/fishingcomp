@@ -44,7 +44,16 @@ type FieldInfo struct {
 	IsFloat    bool
 	IsDouble   bool
 	IsBool     bool
+	IsEnum     bool   // Is an enum type
+	EnumType   string // The enum type name (if IsEnum)
 	CountField string // Name of the count field for arrays
+}
+
+// EnumInfo stores information about an enum for code generation
+type EnumInfo struct {
+	Name     string   // Original schema name
+	EnumName string   // C enum name (styled)
+	Values   []string // Enum values from OpenAPI
 }
 
 // StructInfo stores information about a struct for JSON generation
@@ -63,6 +72,7 @@ type Generator struct {
 	funcStyle   NamingStyle
 	genJSON     bool
 	structs     []StructInfo // Collected struct info for JSON generation
+	enums       []EnumInfo   // Collected enum info for JSON generation
 }
 
 func loadConfig(path string) (*Config, error) {
@@ -204,6 +214,10 @@ func (g *Generator) generate(outputFile string) {
 	g.out.WriteString("typedef struct Req Req;\n")
 	g.out.WriteString("typedef struct Res Res;\n\n")
 
+	// Generate enums first (before structs that may use them)
+	g.out.WriteString("// ============ Enums ============\n\n")
+	g.generateEnums()
+
 	// Forward declare all structs first (for circular references)
 	g.out.WriteString("// Struct forward declarations\n")
 	g.generateForwardDeclarations()
@@ -241,6 +255,80 @@ func (g *Generator) generateForwardDeclarations() {
 		}
 	}
 	g.out.WriteString("\n")
+}
+
+func (g *Generator) generateEnums() {
+	names := g.sortedSchemaNames()
+	for _, name := range names {
+		schema := g.doc.Components.Schemas[name]
+		if schema.Value == nil {
+			continue
+		}
+		// Check if it's an enum (string type with enum values)
+		if schema.Value.Type.Is("string") && len(schema.Value.Enum) > 0 {
+			g.generateEnum(name, schema.Value)
+		}
+	}
+}
+
+func (g *Generator) generateEnum(name string, schema *openapi3.Schema) {
+	enumName := g.applyStyle(name, g.structStyle)
+
+	// Schema description as comment
+	if schema.Description != "" {
+		g.out.WriteString(fmt.Sprintf("// %s\n", wrapComment(schema.Description)))
+	}
+
+	g.out.WriteString(fmt.Sprintf("typedef enum {\n"))
+
+	// Collect enum values
+	var values []string
+	for _, v := range schema.Enum {
+		if s, ok := v.(string); ok {
+			values = append(values, s)
+		}
+	}
+
+	// Generate enum constants
+	for i, value := range values {
+		constName := g.enumConstantName(enumName, value)
+		if i < len(values)-1 {
+			g.out.WriteString(fmt.Sprintf("    %s,\n", constName))
+		} else {
+			g.out.WriteString(fmt.Sprintf("    %s\n", constName))
+		}
+	}
+
+	g.out.WriteString(fmt.Sprintf("} %s;\n\n", enumName))
+
+	// Store enum info for JSON generation
+	g.enums = append(g.enums, EnumInfo{
+		Name:     name,
+		EnumName: enumName,
+		Values:   values,
+	})
+}
+
+func (g *Generator) enumConstantName(enumName, value string) string {
+	// Generate constant name: ENUM_NAME_VALUE
+	return strings.ToUpper(toSnakeCase(enumName)) + "_" + strings.ToUpper(toSnakeCase(value))
+}
+
+func (g *Generator) isEnumRef(ref string) bool {
+	parts := strings.Split(ref, "/")
+	if len(parts) == 0 {
+		return false
+	}
+	schemaName := parts[len(parts)-1]
+	schema := g.doc.Components.Schemas[schemaName]
+	if schema == nil || schema.Value == nil {
+		return false
+	}
+	return schema.Value.Type.Is("string") && len(schema.Value.Enum) > 0
+}
+
+func (g *Generator) isEnumSchema(schema *openapi3.Schema) bool {
+	return schema != nil && schema.Type.Is("string") && len(schema.Enum) > 0
 }
 
 func (g *Generator) generateStructs() {
@@ -299,6 +387,18 @@ func (g *Generator) generateField(propName string, propRef *openapi3.SchemaRef) 
 	// Check if it's a $ref to another schema
 	if propRef.Ref != "" {
 		refType := g.resolveRefType(propRef.Ref)
+		// Check if it's an enum reference
+		if g.isEnumRef(propRef.Ref) {
+			g.out.WriteString(fmt.Sprintf("    %s %s;\n", refType, fieldName))
+			return []FieldInfo{{
+				JSONName:  propName,
+				FieldName: fieldName,
+				CType:     refType,
+				IsEnum:    true,
+				EnumType:  refType,
+			}}
+		}
+		// It's a struct reference
 		g.out.WriteString(fmt.Sprintf("    %s *%s;\n", refType, fieldName))
 		return []FieldInfo{{
 			JSONName:  propName,
@@ -325,6 +425,18 @@ func (g *Generator) generateField(propName string, propRef *openapi3.SchemaRef) 
 	if schema.Type.Is("object") {
 		g.out.WriteString(fmt.Sprintf("    void *%s;\n", fieldName))
 		return []FieldInfo{{JSONName: propName, FieldName: fieldName, CType: "void*"}}
+	}
+
+	// Handle inline enums (string with enum values)
+	if g.isEnumSchema(schema) {
+		// For inline enums, we treat them as int with a comment about valid values
+		g.out.WriteString(fmt.Sprintf("    int %s; // enum: %v\n", fieldName, schema.Enum))
+		return []FieldInfo{{
+			JSONName:  propName,
+			FieldName: fieldName,
+			CType:     "int",
+			IsInt:     true,
+		}}
 	}
 
 	cType := g.openAPITypeToCType(propRef)
@@ -362,32 +474,46 @@ func (g *Generator) generateArrayField(propName, fieldName string, schema *opena
 	var itemType string
 	var isRef bool
 	var refType string
+	var isEnum bool
+	var enumType string
 	var isString, isInt, isInt32, isFloat, isDouble, isBool bool
 
 	if schema.Items != nil {
 		if schema.Items.Ref != "" {
 			itemType = g.resolveRefType(schema.Items.Ref)
-			isRef = true
-			refType = itemType
+			// Check if it's an enum reference
+			if g.isEnumRef(schema.Items.Ref) {
+				isEnum = true
+				enumType = itemType
+			} else {
+				isRef = true
+				refType = itemType
+			}
 		} else if schema.Items.Value != nil {
-			itemType = g.openAPITypeToCType(schema.Items)
 			itemSchema := schema.Items.Value
-			switch {
-			case itemSchema.Type.Is("string"):
-				isString = true
-			case itemSchema.Type.Is("integer"):
+			// Check for inline enum in array items
+			if g.isEnumSchema(itemSchema) {
+				itemType = "int"
 				isInt = true
-				if itemSchema.Format == "int32" {
-					isInt32 = true
+			} else {
+				itemType = g.openAPITypeToCType(schema.Items)
+				switch {
+				case itemSchema.Type.Is("string"):
+					isString = true
+				case itemSchema.Type.Is("integer"):
+					isInt = true
+					if itemSchema.Format == "int32" {
+						isInt32 = true
+					}
+				case itemSchema.Type.Is("number"):
+					if itemSchema.Format == "float" {
+						isFloat = true
+					} else {
+						isDouble = true
+					}
+				case itemSchema.Type.Is("boolean"):
+					isBool = true
 				}
-			case itemSchema.Type.Is("number"):
-				if itemSchema.Format == "float" {
-					isFloat = true
-				} else {
-					isDouble = true
-				}
-			case itemSchema.Type.Is("boolean"):
-				isBool = true
 			}
 		} else {
 			itemType = "void"
@@ -408,6 +534,8 @@ func (g *Generator) generateArrayField(propName, fieldName string, schema *opena
 		IsArray:    true,
 		IsRef:      isRef,
 		RefType:    refType,
+		IsEnum:     isEnum,
+		EnumType:   enumType,
 		IsString:   isString,
 		IsInt:      isInt,
 		IsInt32:    isInt32,
@@ -488,6 +616,15 @@ func (g *Generator) openAPITypeToCType(schemaRef *openapi3.SchemaRef) string {
 }
 
 func (g *Generator) generateJSONDeclarations() {
+	// Enum string conversion functions
+	for _, e := range g.enums {
+		funcPrefix := g.applyStyle(e.Name, g.funcStyle)
+		g.out.WriteString(fmt.Sprintf("// String conversion for %s\n", e.EnumName))
+		g.out.WriteString(fmt.Sprintf("const char *%s_to_string(%s val);\n", funcPrefix, e.EnumName))
+		g.out.WriteString(fmt.Sprintf("%s %s_from_string(const char *str);\n\n", e.EnumName, funcPrefix))
+	}
+
+	// Struct JSON functions
 	for _, s := range g.structs {
 		funcPrefix := g.applyStyle(s.Name, g.funcStyle)
 		g.out.WriteString(fmt.Sprintf("// JSON serialization for %s\n", s.StructName))
@@ -507,6 +644,12 @@ func (g *Generator) generateJSONImplementation(headerFile string) {
 	// Generate helper functions
 	g.generateJSONHelpers()
 
+	// Generate enum conversion functions
+	for _, e := range g.enums {
+		g.generateEnumToString(e)
+		g.generateEnumFromString(e)
+	}
+
 	// Generate forward declarations
 	g.jsonOut.WriteString("// Forward declarations\n")
 	for _, s := range g.structs {
@@ -521,6 +664,31 @@ func (g *Generator) generateJSONImplementation(headerFile string) {
 		g.generateStructFromJSON(s)
 		g.generateStructFree(s)
 	}
+}
+
+func (g *Generator) generateEnumToString(e EnumInfo) {
+	funcPrefix := g.applyStyle(e.Name, g.funcStyle)
+	g.jsonOut.WriteString(fmt.Sprintf("const char *%s_to_string(%s val) {\n", funcPrefix, e.EnumName))
+	g.jsonOut.WriteString("    switch (val) {\n")
+	for _, value := range e.Values {
+		constName := g.enumConstantName(e.EnumName, value)
+		g.jsonOut.WriteString(fmt.Sprintf("        case %s: return \"%s\";\n", constName, value))
+	}
+	g.jsonOut.WriteString("        default: return NULL;\n")
+	g.jsonOut.WriteString("    }\n")
+	g.jsonOut.WriteString("}\n\n")
+}
+
+func (g *Generator) generateEnumFromString(e EnumInfo) {
+	funcPrefix := g.applyStyle(e.Name, g.funcStyle)
+	g.jsonOut.WriteString(fmt.Sprintf("%s %s_from_string(const char *str) {\n", e.EnumName, funcPrefix))
+	g.jsonOut.WriteString("    if (str == NULL) return 0;\n")
+	for _, value := range e.Values {
+		constName := g.enumConstantName(e.EnumName, value)
+		g.jsonOut.WriteString(fmt.Sprintf("    if (strcmp(str, \"%s\") == 0) return %s;\n", value, constName))
+	}
+	g.jsonOut.WriteString("    return 0;\n")
+	g.jsonOut.WriteString("}\n\n")
 }
 
 func (g *Generator) generateJSONHelpers() {
@@ -743,6 +911,9 @@ func (g *Generator) generateStructToJSON(s StructInfo) {
 			if f.IsRef {
 				refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
 				g.jsonOut.WriteString(fmt.Sprintf("        len += %s_write(buf + len, size > (size_t)len ? size - len : 0, &obj->%s[i]);\n", refFuncPrefix, f.FieldName))
+			} else if f.IsEnum {
+				enumFuncPrefix := g.applyStyle(f.EnumType, g.funcStyle)
+				g.jsonOut.WriteString(fmt.Sprintf("        len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, %s_to_string(obj->%s[i]));\n", enumFuncPrefix, f.FieldName))
 			} else if f.IsString {
 				g.jsonOut.WriteString(fmt.Sprintf("        len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, obj->%s[i]);\n", f.FieldName))
 			} else if f.IsInt {
@@ -755,6 +926,10 @@ func (g *Generator) generateStructToJSON(s StructInfo) {
 
 			g.jsonOut.WriteString("    }\n")
 			g.jsonOut.WriteString("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"]\");\n")
+		} else if f.IsEnum {
+			enumFuncPrefix := g.applyStyle(f.EnumType, g.funcStyle)
+			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
+			g.jsonOut.WriteString(fmt.Sprintf("    len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, %s_to_string(obj->%s));\n", enumFuncPrefix, f.FieldName))
 		} else if f.IsRef {
 			refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
 			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
@@ -812,6 +987,16 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 				g.jsonOut.WriteString(fmt.Sprintf("                %s_parse(elem, &obj->%s[i]);\n", refFuncPrefix, f.FieldName))
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
+			} else if f.IsEnum {
+				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, f.EnumType))
+				enumFuncPrefix := g.applyStyle(f.EnumType, g.funcStyle)
+				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
+				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
+				g.jsonOut.WriteString("                char *str = parse_string(elem, &elem);\n")
+				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = %s_from_string(str);\n", f.FieldName, enumFuncPrefix))
+				g.jsonOut.WriteString("                free(str);\n")
+				g.jsonOut.WriteString("                elem = array_next(elem);\n")
+				g.jsonOut.WriteString("            }\n")
 			} else if f.IsString {
 				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(char*));\n", f.FieldName))
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
@@ -853,6 +1038,11 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 				g.jsonOut.WriteString("            }\n")
 			}
 			g.jsonOut.WriteString("        }\n")
+		} else if f.IsEnum {
+			enumFuncPrefix := g.applyStyle(f.EnumType, g.funcStyle)
+			g.jsonOut.WriteString("        char *str = parse_string(p, &p);\n")
+			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = %s_from_string(str);\n", f.FieldName, enumFuncPrefix))
+			g.jsonOut.WriteString("        free(str);\n")
 		} else if f.IsRef {
 			refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
 			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = calloc(1, sizeof(%s));\n", f.FieldName, f.RefType))
