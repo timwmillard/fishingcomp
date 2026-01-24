@@ -725,13 +725,6 @@ static void slog_json_handler_handle(slog_handler *self, const slog_record *reco
     // Level
     fprintf(self->output, "\"level\":\"%s\",", slog_level_string(record->level));
     
-
-    if (record->level == SLOG_DEBUG) {
-        // Source
-        fprintf(self->output, "\"source\":{\"file\":\"%s\",\"line\":%d,\"function\":\"%s\"},",
-                record->file, record->line, record->function);
-    }
-    
     // Message
     fprintf(self->output, "\"msg\":\"");
     slog_write_json_escaped(self->output, record->message, -1);
@@ -785,6 +778,12 @@ static void slog_json_handler_handle(slog_handler *self, const slog_record *reco
                 fprintf(self->output, "{}");
                 break;
         }
+    }
+
+    if (record->level == SLOG_DEBUG) {
+        // Source
+        fprintf(self->output, "\"source\":{\"file\":\"%s\",\"line\":%d,\"function\":\"%s\"},",
+                record->file, record->line, record->function);
     }
     
     fprintf(self->output, "}\n");
@@ -855,13 +854,6 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
     // Message (white/normal)
     fprintf(self->output, "%s", record->message);
 
-    // Print source info for debug level
-    if (record->level == SLOG_DEBUG) {
-        fprintf(self->output, " %ssource%s=%s\"%s:%d (%s)\"%s",
-                SLOG_COLOR_GREEN, SLOG_COLOR_RESET, SLOG_COLOR_DIM,
-                record->file, record->line, record->function, SLOG_COLOR_RESET);
-    }
-
     // Print attributes with colors
     for (size_t i = 0; i < record->attr_count; i++) {
         // Key in cyan
@@ -911,6 +903,13 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
         }
 
         fprintf(self->output, "%s", SLOG_COLOR_RESET);
+    }
+    
+    // Print source info for debug level
+    if (record->level == SLOG_DEBUG) {
+        fprintf(self->output, " %ssource%s=%s\"%s:%d (%s)\"%s",
+                SLOG_COLOR_GREEN, SLOG_COLOR_RESET, SLOG_COLOR_DIM,
+                record->file, record->line, record->function, SLOG_COLOR_RESET);
     }
 
     fprintf(self->output, "\n");
