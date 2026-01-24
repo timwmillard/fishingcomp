@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -18,12 +19,39 @@ const (
 	PascalCase NamingStyle = "pascal"
 )
 
+// FieldInfo stores information about a struct field for JSON generation
+type FieldInfo struct {
+	JSONName   string // Original name from OpenAPI (used in JSON)
+	FieldName  string // C field name (styled)
+	CType      string // C type
+	IsArray    bool
+	IsRef      bool   // Is a reference to another struct
+	RefType    string // The referenced struct type (if IsRef)
+	IsString   bool
+	IsInt      bool
+	IsInt32    bool
+	IsFloat    bool
+	IsDouble   bool
+	IsBool     bool
+	CountField string // Name of the count field for arrays
+}
+
+// StructInfo stores information about a struct for JSON generation
+type StructInfo struct {
+	Name       string // Original schema name
+	StructName string // C struct name (styled)
+	Fields     []FieldInfo
+}
+
 type Generator struct {
 	doc         *openapi3.T
 	out         strings.Builder
+	jsonOut     strings.Builder
 	structStyle NamingStyle
 	fieldStyle  NamingStyle
 	funcStyle   NamingStyle
+	genJSON     bool
+	structs     []StructInfo // Collected struct info for JSON generation
 }
 
 func main() {
@@ -32,6 +60,7 @@ func main() {
 	structStyle := flag.String("struct-style", "pascal", "Naming style for structs: snake, camel, pascal")
 	fieldStyle := flag.String("field-style", "snake", "Naming style for fields: snake, camel, pascal")
 	funcStyle := flag.String("func-style", "snake", "Naming style for functions: snake, camel, pascal")
+	genJSON := flag.Bool("gen-json", false, "Generate JSON marshal/unmarshal functions")
 	flag.Parse()
 
 	loader := openapi3.NewLoader()
@@ -51,6 +80,7 @@ func main() {
 		structStyle: NamingStyle(*structStyle),
 		fieldStyle:  NamingStyle(*fieldStyle),
 		funcStyle:   NamingStyle(*funcStyle),
+		genJSON:     *genJSON,
 	}
 
 	gen.generate(*output)
@@ -59,8 +89,17 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error writing output: %v\n", err)
 		os.Exit(1)
 	}
-
 	fmt.Printf("Generated %s\n", *output)
+
+	// Generate JSON implementation file
+	if *genJSON {
+		jsonFile := strings.TrimSuffix(*output, filepath.Ext(*output)) + "_json.c"
+		if err := os.WriteFile(jsonFile, []byte(gen.jsonOut.String()), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing JSON output: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Generated %s\n", jsonFile)
+	}
 }
 
 func (g *Generator) generate(outputFile string) {
@@ -86,12 +125,23 @@ func (g *Generator) generate(outputFile string) {
 	g.out.WriteString("// ============ Structs ============\n\n")
 	g.generateStructs()
 
+	// Generate JSON function declarations
+	if g.genJSON {
+		g.out.WriteString("// ============ JSON Functions ============\n\n")
+		g.generateJSONDeclarations()
+	}
+
 	// Generate handler signatures from paths
 	g.out.WriteString("// ============ Handlers ============\n\n")
 	g.generateHandlers()
 
 	// Close header guard
 	g.out.WriteString(fmt.Sprintf("#endif // %s\n", guardName))
+
+	// Generate JSON implementation file
+	if g.genJSON {
+		g.generateJSONImplementation(outputFile)
+	}
 }
 
 func (g *Generator) generateForwardDeclarations() {
@@ -129,18 +179,29 @@ func (g *Generator) generateStruct(name string, schema *openapi3.Schema) {
 
 	g.out.WriteString(fmt.Sprintf("struct %s {\n", structName))
 
+	// Collect struct info for JSON generation
+	structInfo := StructInfo{
+		Name:       name,
+		StructName: structName,
+		Fields:     []FieldInfo{},
+	}
+
 	// Sort properties for deterministic output
 	propNames := g.sortedPropertyNames(schema.Properties)
 
 	for _, propName := range propNames {
 		prop := schema.Properties[propName]
-		g.generateField(propName, prop)
+		fieldInfo := g.generateField(propName, prop)
+		structInfo.Fields = append(structInfo.Fields, fieldInfo...)
 	}
 
 	g.out.WriteString(fmt.Sprintf("};\n\n"))
+
+	// Store struct info for JSON generation
+	g.structs = append(g.structs, structInfo)
 }
 
-func (g *Generator) generateField(propName string, propRef *openapi3.SchemaRef) {
+func (g *Generator) generateField(propName string, propRef *openapi3.SchemaRef) []FieldInfo {
 	fieldName := g.applyStyle(propName, g.fieldStyle)
 
 	// Field description as comment
@@ -152,42 +213,95 @@ func (g *Generator) generateField(propName string, propRef *openapi3.SchemaRef) 
 	if propRef.Ref != "" {
 		refType := g.resolveRefType(propRef.Ref)
 		g.out.WriteString(fmt.Sprintf("    %s *%s;\n", refType, fieldName))
-		return
+		return []FieldInfo{{
+			JSONName:  propName,
+			FieldName: fieldName,
+			CType:     refType + "*",
+			IsRef:     true,
+			RefType:   refType,
+		}}
 	}
 
 	if propRef.Value == nil {
 		g.out.WriteString(fmt.Sprintf("    void *%s;\n", fieldName))
-		return
+		return []FieldInfo{{JSONName: propName, FieldName: fieldName, CType: "void*"}}
 	}
 
 	schema := propRef.Value
 
 	// Handle arrays specially - generate pointer + count
 	if schema.Type.Is("array") {
-		g.generateArrayField(fieldName, schema)
-		return
+		return g.generateArrayField(propName, fieldName, schema)
 	}
 
 	// Handle nested objects
 	if schema.Type.Is("object") {
-		// Anonymous nested object - use void* for now
 		g.out.WriteString(fmt.Sprintf("    void *%s;\n", fieldName))
-		return
+		return []FieldInfo{{JSONName: propName, FieldName: fieldName, CType: "void*"}}
 	}
 
 	cType := g.openAPITypeToCType(propRef)
 	g.out.WriteString(fmt.Sprintf("    %s %s;\n", cType, fieldName))
+
+	field := FieldInfo{
+		JSONName:  propName,
+		FieldName: fieldName,
+		CType:     cType,
+	}
+
+	// Determine type for JSON generation
+	switch {
+	case schema.Type.Is("string"):
+		field.IsString = true
+	case schema.Type.Is("integer"):
+		field.IsInt = true
+		if schema.Format == "int32" {
+			field.IsInt32 = true
+		}
+	case schema.Type.Is("number"):
+		if schema.Format == "float" {
+			field.IsFloat = true
+		} else {
+			field.IsDouble = true
+		}
+	case schema.Type.Is("boolean"):
+		field.IsBool = true
+	}
+
+	return []FieldInfo{field}
 }
 
-func (g *Generator) generateArrayField(fieldName string, schema *openapi3.Schema) {
+func (g *Generator) generateArrayField(propName, fieldName string, schema *openapi3.Schema) []FieldInfo {
 	var itemType string
+	var isRef bool
+	var refType string
+	var isString, isInt, isInt32, isFloat, isDouble, isBool bool
 
 	if schema.Items != nil {
 		if schema.Items.Ref != "" {
-			// Array of referenced type
 			itemType = g.resolveRefType(schema.Items.Ref)
+			isRef = true
+			refType = itemType
 		} else if schema.Items.Value != nil {
 			itemType = g.openAPITypeToCType(schema.Items)
+			itemSchema := schema.Items.Value
+			switch {
+			case itemSchema.Type.Is("string"):
+				isString = true
+			case itemSchema.Type.Is("integer"):
+				isInt = true
+				if itemSchema.Format == "int32" {
+					isInt32 = true
+				}
+			case itemSchema.Type.Is("number"):
+				if itemSchema.Format == "float" {
+					isFloat = true
+				} else {
+					isDouble = true
+				}
+			case itemSchema.Type.Is("boolean"):
+				isBool = true
+			}
 		} else {
 			itemType = "void"
 		}
@@ -196,14 +310,28 @@ func (g *Generator) generateArrayField(fieldName string, schema *openapi3.Schema
 	}
 
 	// Generate pointer + count fields
-	// Count field name follows the same style as the array field
-	countFieldName := g.applyStyle(fieldName+"_count", g.fieldStyle)
+	countFieldName := g.applyStyle(propName+"_count", g.fieldStyle)
 	g.out.WriteString(fmt.Sprintf("    %s *%s;\n", itemType, fieldName))
 	g.out.WriteString(fmt.Sprintf("    size_t %s;\n", countFieldName))
+
+	return []FieldInfo{{
+		JSONName:   propName,
+		FieldName:  fieldName,
+		CType:      itemType + "*",
+		IsArray:    true,
+		IsRef:      isRef,
+		RefType:    refType,
+		IsString:   isString,
+		IsInt:      isInt,
+		IsInt32:    isInt32,
+		IsFloat:    isFloat,
+		IsDouble:   isDouble,
+		IsBool:     isBool,
+		CountField: countFieldName,
+	}}
 }
 
 func (g *Generator) resolveRefType(ref string) string {
-	// Extract schema name from $ref like "#/components/schemas/Competitor"
 	parts := strings.Split(ref, "/")
 	if len(parts) > 0 {
 		schemaName := parts[len(parts)-1]
@@ -213,7 +341,6 @@ func (g *Generator) resolveRefType(ref string) string {
 }
 
 func (g *Generator) openAPITypeToCType(schemaRef *openapi3.SchemaRef) string {
-	// Check for $ref first
 	if schemaRef.Ref != "" {
 		return g.resolveRefType(schemaRef.Ref) + "*"
 	}
@@ -259,7 +386,6 @@ func (g *Generator) openAPITypeToCType(schemaRef *openapi3.SchemaRef) string {
 		return "bool"
 
 	case schema.Type.Is("array"):
-		// For inline array types (not as struct fields), return pointer
 		if schema.Items != nil {
 			itemType := g.openAPITypeToCType(schema.Items)
 			return itemType + "*"
@@ -272,6 +398,431 @@ func (g *Generator) openAPITypeToCType(schemaRef *openapi3.SchemaRef) string {
 	default:
 		return "void*"
 	}
+}
+
+func (g *Generator) generateJSONDeclarations() {
+	for _, s := range g.structs {
+		funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+		g.out.WriteString(fmt.Sprintf("// JSON serialization for %s\n", s.StructName))
+		g.out.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj);\n", funcPrefix, s.StructName))
+		g.out.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj);\n", funcPrefix, s.StructName))
+		g.out.WriteString(fmt.Sprintf("void %s_free(%s *obj);\n\n", funcPrefix, s.StructName))
+	}
+}
+
+func (g *Generator) generateJSONImplementation(headerFile string) {
+	g.jsonOut.WriteString("// Generated from OpenAPI spec - do not edit\n")
+	g.jsonOut.WriteString("// No external JSON library required\n\n")
+	g.jsonOut.WriteString(fmt.Sprintf("#include \"%s\"\n", headerFile))
+	g.jsonOut.WriteString("#include <stdlib.h>\n")
+	g.jsonOut.WriteString("#include <string.h>\n")
+	g.jsonOut.WriteString("#include <stdio.h>\n\n")
+
+	// Generate helper functions
+	g.generateJSONHelpers()
+
+	// Generate forward declarations
+	g.jsonOut.WriteString("// Forward declarations\n")
+	for _, s := range g.structs {
+		funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+		g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj);\n", funcPrefix, s.StructName))
+		g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj);\n", funcPrefix, s.StructName))
+	}
+	g.jsonOut.WriteString("\n")
+
+	for _, s := range g.structs {
+		g.generateStructToJSON(s)
+		g.generateStructFromJSON(s)
+		g.generateStructFree(s)
+	}
+}
+
+func (g *Generator) generateJSONHelpers() {
+	g.jsonOut.WriteString(`// ============ JSON Helper Functions ============
+
+static const char *skip_ws(const char *p) {
+    while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
+    return p;
+}
+
+static const char *skip_value(const char *p) {
+    p = skip_ws(p);
+    if (*p == '"') {
+        p++;
+        while (*p && *p != '"') {
+            if (*p == '\\' && *(p+1)) p++;
+            p++;
+        }
+        if (*p == '"') p++;
+    } else if (*p == '{') {
+        int depth = 1;
+        p++;
+        while (*p && depth > 0) {
+            if (*p == '{') depth++;
+            else if (*p == '}') depth--;
+            else if (*p == '"') {
+                p++;
+                while (*p && *p != '"') {
+                    if (*p == '\\' && *(p+1)) p++;
+                    p++;
+                }
+            }
+            if (*p) p++;
+        }
+    } else if (*p == '[') {
+        int depth = 1;
+        p++;
+        while (*p && depth > 0) {
+            if (*p == '[') depth++;
+            else if (*p == ']') depth--;
+            else if (*p == '"') {
+                p++;
+                while (*p && *p != '"') {
+                    if (*p == '\\' && *(p+1)) p++;
+                    p++;
+                }
+            }
+            if (*p) p++;
+        }
+    } else {
+        while (*p && *p != ',' && *p != '}' && *p != ']') p++;
+    }
+    return p;
+}
+
+static const char *find_key(const char *json, const char *key) {
+    const char *p = skip_ws(json);
+    if (*p != '{') return NULL;
+    p = skip_ws(p + 1);
+
+    size_t keylen = strlen(key);
+    while (*p && *p != '}') {
+        if (*p != '"') return NULL;
+        p++;
+        const char *kstart = p;
+        while (*p && *p != '"') p++;
+        size_t klen = p - kstart;
+        p++;
+        p = skip_ws(p);
+        if (*p != ':') return NULL;
+        p = skip_ws(p + 1);
+
+        if (klen == keylen && memcmp(kstart, key, keylen) == 0) {
+            return p;
+        }
+        p = skip_value(p);
+        p = skip_ws(p);
+        if (*p == ',') p = skip_ws(p + 1);
+    }
+    return NULL;
+}
+
+static char *parse_string(const char *p, const char **endp) {
+    p = skip_ws(p);
+    if (*p != '"') { *endp = p; return NULL; }
+    p++;
+    const char *start = p;
+    size_t len = 0;
+    while (*p && *p != '"') {
+        if (*p == '\\' && *(p+1)) { p += 2; len++; }
+        else { p++; len++; }
+    }
+    char *str = malloc(len + 1);
+    if (!str) { *endp = p; return NULL; }
+    const char *s = start;
+    char *d = str;
+    while (s < p) {
+        if (*s == '\\' && *(s+1)) {
+            s++;
+            switch (*s) {
+                case 'n': *d++ = '\n'; break;
+                case 't': *d++ = '\t'; break;
+                case 'r': *d++ = '\r'; break;
+                case '"': *d++ = '"'; break;
+                case '\\': *d++ = '\\'; break;
+                default: *d++ = *s; break;
+            }
+            s++;
+        } else {
+            *d++ = *s++;
+        }
+    }
+    *d = '\0';
+    *endp = (*p == '"') ? p + 1 : p;
+    return str;
+}
+
+static int64_t parse_int(const char *p, const char **endp) {
+    p = skip_ws(p);
+    char *end;
+    int64_t val = strtoll(p, &end, 10);
+    *endp = end;
+    return val;
+}
+
+static double parse_double(const char *p, const char **endp) {
+    p = skip_ws(p);
+    char *end;
+    double val = strtod(p, &end);
+    *endp = end;
+    return val;
+}
+
+static bool parse_bool(const char *p, const char **endp) {
+    p = skip_ws(p);
+    if (strncmp(p, "true", 4) == 0) { *endp = p + 4; return true; }
+    if (strncmp(p, "false", 5) == 0) { *endp = p + 5; return false; }
+    *endp = p;
+    return false;
+}
+
+static size_t count_array(const char *p) {
+    p = skip_ws(p);
+    if (*p != '[') return 0;
+    p = skip_ws(p + 1);
+    if (*p == ']') return 0;
+    size_t count = 1;
+    while (*p && *p != ']') {
+        if (*p == ',' ) count++;
+        else if (*p == '"') {
+            p++;
+            while (*p && *p != '"') {
+                if (*p == '\\' && *(p+1)) p++;
+                p++;
+            }
+        } else if (*p == '{' || *p == '[') {
+            p = skip_value(p) - 1;
+        }
+        if (*p) p++;
+    }
+    return count;
+}
+
+static const char *array_first(const char *p) {
+    p = skip_ws(p);
+    if (*p != '[') return NULL;
+    p = skip_ws(p + 1);
+    if (*p == ']') return NULL;
+    return p;
+}
+
+static const char *array_next(const char *p) {
+    p = skip_value(p);
+    p = skip_ws(p);
+    if (*p == ',') return skip_ws(p + 1);
+    return NULL;
+}
+
+static int write_escaped(char *buf, size_t size, const char *str) {
+    if (!str) return snprintf(buf, size, "null");
+    int len = 0;
+    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\"");
+    for (const char *p = str; *p; p++) {
+        switch (*p) {
+            case '"':  len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\\\""); break;
+            case '\\': len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\\\\"); break;
+            case '\n': len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\\n"); break;
+            case '\r': len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\\r"); break;
+            case '\t': len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\\t"); break;
+            default:   len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "%c", *p); break;
+        }
+    }
+    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\"");
+    return len;
+}
+
+`)
+}
+
+func (g *Generator) generateStructToJSON(s StructInfo) {
+	funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+
+	// Internal write function (returns bytes written)
+	g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj) {\n", funcPrefix, s.StructName))
+	g.jsonOut.WriteString("    if (obj == NULL) return snprintf(buf, size, \"null\");\n")
+	g.jsonOut.WriteString("    int len = 0;\n")
+	g.jsonOut.WriteString("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"{\");\n")
+
+	for i, f := range s.Fields {
+		comma := ""
+		if i > 0 {
+			comma = ","
+		}
+
+		if f.IsArray {
+			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":[\");\n", comma, f.JSONName))
+			g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) {\n", f.CountField))
+			g.jsonOut.WriteString("        if (i > 0) len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \",\");\n")
+
+			if f.IsRef {
+				refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+				g.jsonOut.WriteString(fmt.Sprintf("        len += %s_write(buf + len, size > (size_t)len ? size - len : 0, &obj->%s[i]);\n", refFuncPrefix, f.FieldName))
+			} else if f.IsString {
+				g.jsonOut.WriteString(fmt.Sprintf("        len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, obj->%s[i]);\n", f.FieldName))
+			} else if f.IsInt {
+				g.jsonOut.WriteString(fmt.Sprintf("        len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%%lld\", (long long)obj->%s[i]);\n", f.FieldName))
+			} else if f.IsFloat || f.IsDouble {
+				g.jsonOut.WriteString(fmt.Sprintf("        len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%%g\", (double)obj->%s[i]);\n", f.FieldName))
+			} else if f.IsBool {
+				g.jsonOut.WriteString(fmt.Sprintf("        len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%%s\", obj->%s[i] ? \"true\" : \"false\");\n", f.FieldName))
+			}
+
+			g.jsonOut.WriteString("    }\n")
+			g.jsonOut.WriteString("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"]\");\n")
+		} else if f.IsRef {
+			refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
+			g.jsonOut.WriteString(fmt.Sprintf("    len += %s_write(buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", refFuncPrefix, f.FieldName))
+		} else if f.IsString {
+			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
+			g.jsonOut.WriteString(fmt.Sprintf("    len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", f.FieldName))
+		} else if f.IsInt {
+			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":%%lld\", (long long)obj->%s);\n", comma, f.JSONName, f.FieldName))
+		} else if f.IsFloat || f.IsDouble {
+			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":%%g\", (double)obj->%s);\n", comma, f.JSONName, f.FieldName))
+		} else if f.IsBool {
+			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":%%s\", obj->%s ? \"true\" : \"false\");\n", comma, f.JSONName, f.FieldName))
+		}
+	}
+
+	g.jsonOut.WriteString("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"}\");\n")
+	g.jsonOut.WriteString("    return len;\n")
+	g.jsonOut.WriteString("}\n\n")
+
+	// Public function
+	g.jsonOut.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj) {\n", funcPrefix, s.StructName))
+	g.jsonOut.WriteString(fmt.Sprintf("    int len = %s_write(NULL, 0, obj);\n", funcPrefix))
+	g.jsonOut.WriteString("    char *buf = malloc(len + 1);\n")
+	g.jsonOut.WriteString("    if (buf == NULL) return NULL;\n")
+	g.jsonOut.WriteString(fmt.Sprintf("    %s_write(buf, len + 1, obj);\n", funcPrefix))
+	g.jsonOut.WriteString("    return buf;\n")
+	g.jsonOut.WriteString("}\n\n")
+}
+
+func (g *Generator) generateStructFromJSON(s StructInfo) {
+	funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+
+	// Internal parse function
+	g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj) {\n", funcPrefix, s.StructName))
+	g.jsonOut.WriteString("    if (json == NULL || obj == NULL) return NULL;\n")
+	g.jsonOut.WriteString("    memset(obj, 0, sizeof(*obj));\n")
+	g.jsonOut.WriteString("    const char *p;\n")
+	g.jsonOut.WriteString("    (void)p; // may be unused\n\n")
+
+	for _, f := range s.Fields {
+		g.jsonOut.WriteString(fmt.Sprintf("    p = find_key(json, \"%s\");\n", f.JSONName))
+		g.jsonOut.WriteString("    if (p != NULL) {\n")
+
+		if f.IsArray {
+			g.jsonOut.WriteString(fmt.Sprintf("        size_t count = count_array(p);\n"))
+			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = count;\n", f.CountField))
+			g.jsonOut.WriteString("        if (count > 0) {\n")
+
+			if f.IsRef {
+				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, f.RefType))
+				refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
+				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
+				g.jsonOut.WriteString(fmt.Sprintf("                %s_parse(elem, &obj->%s[i]);\n", refFuncPrefix, f.FieldName))
+				g.jsonOut.WriteString("                elem = array_next(elem);\n")
+				g.jsonOut.WriteString("            }\n")
+			} else if f.IsString {
+				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(char*));\n", f.FieldName))
+				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
+				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
+				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = parse_string(elem, &elem);\n", f.FieldName))
+				g.jsonOut.WriteString("                elem = array_next(elem);\n")
+				g.jsonOut.WriteString("            }\n")
+			} else if f.IsInt {
+				ctype := "int64_t"
+				if f.IsInt32 {
+					ctype = "int32_t"
+				}
+				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, ctype))
+				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
+				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
+				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = (%s)parse_int(elem, &elem);\n", f.FieldName, ctype))
+				g.jsonOut.WriteString("                elem = array_next(elem);\n")
+				g.jsonOut.WriteString("            }\n")
+			} else if f.IsFloat {
+				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(float));\n", f.FieldName))
+				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
+				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
+				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = (float)parse_double(elem, &elem);\n", f.FieldName))
+				g.jsonOut.WriteString("                elem = array_next(elem);\n")
+				g.jsonOut.WriteString("            }\n")
+			} else if f.IsDouble {
+				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(double));\n", f.FieldName))
+				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
+				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
+				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = parse_double(elem, &elem);\n", f.FieldName))
+				g.jsonOut.WriteString("                elem = array_next(elem);\n")
+				g.jsonOut.WriteString("            }\n")
+			} else if f.IsBool {
+				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(bool));\n", f.FieldName))
+				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
+				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
+				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = parse_bool(elem, &elem);\n", f.FieldName))
+				g.jsonOut.WriteString("                elem = array_next(elem);\n")
+				g.jsonOut.WriteString("            }\n")
+			}
+			g.jsonOut.WriteString("        }\n")
+		} else if f.IsRef {
+			refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = calloc(1, sizeof(%s));\n", f.FieldName, f.RefType))
+			g.jsonOut.WriteString(fmt.Sprintf("        if (obj->%s) %s_parse(p, obj->%s);\n", f.FieldName, refFuncPrefix, f.FieldName))
+		} else if f.IsString {
+			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = parse_string(p, &p);\n", f.FieldName))
+		} else if f.IsInt {
+			if f.IsInt32 {
+				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = (int32_t)parse_int(p, &p);\n", f.FieldName))
+			} else {
+				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = parse_int(p, &p);\n", f.FieldName))
+			}
+		} else if f.IsFloat {
+			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = (float)parse_double(p, &p);\n", f.FieldName))
+		} else if f.IsDouble {
+			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = parse_double(p, &p);\n", f.FieldName))
+		} else if f.IsBool {
+			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = parse_bool(p, &p);\n", f.FieldName))
+		}
+
+		g.jsonOut.WriteString("    }\n\n")
+	}
+
+	g.jsonOut.WriteString("    return skip_value(json);\n")
+	g.jsonOut.WriteString("}\n\n")
+
+	// Public function
+	g.jsonOut.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj) {\n", funcPrefix, s.StructName))
+	g.jsonOut.WriteString(fmt.Sprintf("    return %s_parse(json, obj) != NULL ? 0 : -1;\n", funcPrefix))
+	g.jsonOut.WriteString("}\n\n")
+}
+
+func (g *Generator) generateStructFree(s StructInfo) {
+	funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+
+	g.jsonOut.WriteString(fmt.Sprintf("void %s_free(%s *obj) {\n", funcPrefix, s.StructName))
+	g.jsonOut.WriteString("    if (obj == NULL) return;\n")
+
+	for _, f := range s.Fields {
+		if f.IsArray {
+			if f.IsRef {
+				refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+				g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) %s_free(&obj->%s[i]);\n", f.CountField, refFuncPrefix, f.FieldName))
+			} else if f.IsString {
+				g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) free(obj->%s[i]);\n", f.CountField, f.FieldName))
+			}
+			g.jsonOut.WriteString(fmt.Sprintf("    free(obj->%s);\n", f.FieldName))
+		} else if f.IsRef {
+			refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+			g.jsonOut.WriteString(fmt.Sprintf("    if (obj->%s) { %s_free(obj->%s); free(obj->%s); }\n", f.FieldName, refFuncPrefix, f.FieldName, f.FieldName))
+		} else if f.IsString {
+			g.jsonOut.WriteString(fmt.Sprintf("    free(obj->%s);\n", f.FieldName))
+		}
+	}
+
+	g.jsonOut.WriteString("}\n\n")
 }
 
 func (g *Generator) generateHandlers() {
@@ -313,7 +864,6 @@ func (g *Generator) generateHandlers() {
 }
 
 func (g *Generator) generateHandler(method, path string, op *openapi3.Operation) {
-	// Summary as comment
 	if op.Summary != "" {
 		g.out.WriteString(fmt.Sprintf("// %s %s - %s\n", strings.ToUpper(method), path, op.Summary))
 	} else {
@@ -330,7 +880,6 @@ func (g *Generator) operationToFuncName(method, path string, op *openapi3.Operat
 	if op.OperationID != "" {
 		name = op.OperationID
 	} else {
-		// Generate from method + path
 		pathPart := strings.ReplaceAll(path, "/", "_")
 		pathPart = strings.ReplaceAll(pathPart, "{", "by_")
 		pathPart = strings.ReplaceAll(pathPart, "}", "")
@@ -435,7 +984,6 @@ func splitIdentifier(s string) []string {
 			continue
 		}
 
-		// Start new part on uppercase after lowercase
 		if i > 0 && isUpper && current.Len() > 0 {
 			lastChar := []rune(current.String())[current.Len()-1]
 			if lastChar >= 'a' && lastChar <= 'z' {
@@ -455,7 +1003,6 @@ func splitIdentifier(s string) []string {
 }
 
 func wrapComment(s string) string {
-	// Replace newlines with space for single-line comment
 	s = strings.ReplaceAll(s, "\n", " ")
 	s = strings.ReplaceAll(s, "\r", "")
 	return strings.TrimSpace(s)

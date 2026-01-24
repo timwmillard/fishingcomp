@@ -104,6 +104,33 @@ struct Species {
     size_t tags_count;
 };
 
+// ============ JSON Functions ============
+
+// JSON serialization for Boat
+char *boat_to_json(Boat *obj);
+int boat_from_json(const char *json, Boat *obj);
+void boat_free(Boat *obj);
+
+// JSON serialization for Catch
+char *catch_to_json(Catch *obj);
+int catch_from_json(const char *json, Catch *obj);
+void catch_free(Catch *obj);
+
+// JSON serialization for Competitor
+char *competitor_to_json(Competitor *obj);
+int competitor_from_json(const char *json, Competitor *obj);
+void competitor_free(Competitor *obj);
+
+// JSON serialization for LeaderboardEntry
+char *leaderboard_entry_to_json(LeaderboardEntry *obj);
+int leaderboard_entry_from_json(const char *json, LeaderboardEntry *obj);
+void leaderboard_entry_free(LeaderboardEntry *obj);
+
+// JSON serialization for Species
+char *species_to_json(Species *obj);
+int species_from_json(const char *json, Species *obj);
+void species_free(Species *obj);
+
 // ============ Handlers ============
 
 // GET /boats - List all boats
