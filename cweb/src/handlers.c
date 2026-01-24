@@ -5,12 +5,10 @@
 #include "cweb.h"
 
 #include "models.h"
+#include "queries.h"
 #include "api.h"
 #include "api_json.c"
 
-
-int sql_GetCompetitor(sql_context *ctx, sql_int64 id, Competitor *result);
-int sql_GetCompetitor_cb(sql_context *ctx, sql_int64 id, void (*cb)(Competitor *, void*), void *userdata);
 
 void health(Req *req, Res *res) {
     // int rc = sqlite3_db_readonly(sqlctx.db, "main");
@@ -66,6 +64,23 @@ void set_log_level_handle(Req *req, Res *res) {
             "{\"min_level\": \"%s\"}\n", level_str);
     send_json(res, OK, body);
 }
+
+void log_handle(Req *req, Res *res) {
+    slog_debug("Debugging log",
+            slog_bool("status", true)
+    );
+    slog_info("Information log",
+            slog_bool("status", true)
+    );
+    slog_warn("Warning log",
+            slog_bool("status", true)
+    );
+    slog_error("Error log",
+            slog_bool("status", true)
+    );
+    reply(res, OK, NULL, 0);
+}
+
 
 void hello(Req *req, Res *res) {
     const char *name = get_query(req, "name");
@@ -167,6 +182,13 @@ void api_get_competitor_res(Competitor *comp, void *data) {
     send_json(res, OK, body);
 }
 
+void sql2api_competitor(Competitor *comp, void *data) {
+    api_Competitor *api = data;
+    api->id = comp->ID;
+    api->first_name = strdup((char*)comp->FirstName.data);
+    api->last_name = strdup((char*)comp->LastName.data);
+}
+
 // GET /competitors/{id} - Get a competitor by ID
 void api_get_competitor(Req *req, Res *res) {
     const char *id_str = get_param(req, "id");
@@ -191,20 +213,36 @@ void api_get_competitor(Req *req, Res *res) {
     );
 }
 
-void log_handle(Req *req, Res *res) {
-    slog_debug("Debugging log",
-            slog_bool("status", true)
-    );
-    slog_info("Information log",
-            slog_bool("status", true)
-    );
-    slog_warn("Warning log",
-            slog_bool("status", true)
-    );
-    slog_error("Error log",
-            slog_bool("status", true)
-    );
-    reply(res, OK, NULL, 0);
+// POST /competitors - Create a competitor
+void api_create_competitor(Req *req, Res *res) {
+    slog_debug("Competitor creating");
+
+    api_Competitor body;
+    int rc = competitor_from_json(req->body, &body);
+    if (rc != 0) {
+        send_json(res, BAD_REQUEST, "{\"error\": \"malformed json\"}\n");
+    }
+
+    api_Competitor result;
+    rc = sql_CreateCompetitor_cb(&sqlctx, &(CreateCompetitorParams){
+            .FirstName = to_sql_text(body.first_name),
+            .LastName = to_sql_text(body.last_name),
+            .Email = to_sql_text(""),
+        }, sql2api_competitor, &result);
+    if (rc != SQLITE_OK) {
+        slog_error("Competitor create failed");
+        send_json(res, INTERNAL_SERVER_ERROR, "{\"error\": \"create competior failed\"}\n");
+        return;
+    }
+
+    slog_info("Competitor created",
+            slog_int("id", result.id),
+            slog_string("first_name", result.first_name),
+            slog_string("last_name", result.last_name)
+            );
+
+    send_json(res, OK, competitor_to_json(&result));
+
 }
 
 void routes() {
@@ -219,4 +257,5 @@ void routes() {
 
     // API
     get("/api/competitors/:id", api_get_competitor);
+    post("/api/competitors", api_create_competitor);
 }

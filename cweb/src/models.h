@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "sqlite3.h"
 
@@ -114,5 +115,12 @@ typedef struct {
   sql_text PhotoUrl;
   sql_text Type;
 } Species;
+
+static inline sql_text to_sql_text(char *str) {
+    return (sql_text){
+        .data = (sql_byte*)str,
+        .len = strlen(str)
+    };
+}
 
 #endif

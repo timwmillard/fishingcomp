@@ -4,11 +4,7 @@
 #include "models.h"
 #include "sqlite3.h"
 
-typedef struct {
-  sql_text FirstName;
-  sql_text LastName;
-  sql_text Email;
-} CreateCompetitorParams;
+#include "queries.h"
 
 int sql_CreateCompetitor(sql_context *ctx, CreateCompetitorParams arg,
                          Competitor *result) {
@@ -28,27 +24,70 @@ int sql_CreateCompetitor(sql_context *ctx, CreateCompetitorParams arg,
   if (rc != SQLITE_OK)
     return rc;
 
-  sqlite3_bind_text(stmt, 1, arg.FirstName.data, -1, SQLITE_STATIC);
+  sqlite3_bind_text(stmt, 1, (char*)arg.FirstName.data, -1, SQLITE_STATIC);
 
-  sqlite3_bind_text(stmt, 2, arg.LastName.data, -1, SQLITE_STATIC);
+  sqlite3_bind_text(stmt, 2, (char*)arg.LastName.data, -1, SQLITE_STATIC);
 
-  sqlite3_bind_text(stmt, 3, arg.Email.data, -1, SQLITE_STATIC);
+  sqlite3_bind_text(stmt, 3, (char*)arg.Email.data, -1, SQLITE_STATIC);
 
   rc = sqlite3_step(stmt);
   if (rc == SQLITE_ROW) {
     result->ID = sqlite3_column_int64(stmt, 0);
-    result->CompetitorNo.data = sqlite3_column_text(stmt, 1);
+    // result->CompetitorNo.data = sqlite3_column_text(stmt, 1);
     result->FirstName.data = sqlite3_column_text(stmt, 2);
     result->LastName.data = sqlite3_column_text(stmt, 3);
-    result->Email.data = sqlite3_column_text(stmt, 4);
-    result->Mobile.data = sqlite3_column_text(stmt, 5);
-    result->Phone.data = sqlite3_column_text(stmt, 6);
-    result->Address1.data = sqlite3_column_text(stmt, 7);
-    result->Address2.data = sqlite3_column_text(stmt, 8);
-    result->Suburb.data = sqlite3_column_text(stmt, 9);
-    result->State.data = sqlite3_column_text(stmt, 10);
-    result->Postcode.data = sqlite3_column_text(stmt, 11);
+    // result->Email.data = sqlite3_column_text(stmt, 4);
+    // result->Mobile.data = sqlite3_column_text(stmt, 5);
+    // result->Phone.data = sqlite3_column_text(stmt, 6);
+    // result->Address1.data = sqlite3_column_text(stmt, 7);
+    // result->Address2.data = sqlite3_column_text(stmt, 8);
+    // result->Suburb.data = sqlite3_column_text(stmt, 9);
+    // result->State.data = sqlite3_column_text(stmt, 10);
+    // result->Postcode.data = sqlite3_column_text(stmt, 11);
     // Unknow type sql_nullint64 for BoatID
+    sqlite3_finalize(stmt);
+    return SQLITE_OK;
+  } else if (rc == SQLITE_DONE) {
+    sqlite3_finalize(stmt);
+    return SQLITE_NOTFOUND;
+  } else {
+    sqlite3_finalize(stmt);
+    return rc;
+  }
+}
+
+int sql_CreateCompetitor_cb(sql_context *ctx, CreateCompetitorParams *arg,
+                         void (*cb)(Competitor *, void*), void *userdata) {
+
+  const char *sql =
+      "-- name: CreateCompetitor :one\n"
+      "insert into competitor (\n"
+      "    first_name,\n"
+      "    last_name,\n"
+      "    email\n"
+      ") values ( ?, ?, ?)\n"
+      "returning id, competitor_no, first_name, last_name, email, mobile, "
+      "phone, address1, address2, suburb, state, postcode, boat_id\n";
+
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v3(ctx->db, sql, -1, 0, &stmt, 0);
+  if (rc != SQLITE_OK)
+    return rc;
+
+  sqlite3_bind_text(stmt, 1, (char*)arg->FirstName.data, -1, SQLITE_STATIC);
+
+  sqlite3_bind_text(stmt, 2, (char*)arg->LastName.data, -1, SQLITE_STATIC);
+
+  sqlite3_bind_text(stmt, 3, (char*)arg->Email.data, -1, SQLITE_STATIC);
+
+  rc = sqlite3_step(stmt);
+  if (rc == SQLITE_ROW) {
+
+    Competitor result;
+    result.ID = sqlite3_column_int64(stmt, 0);
+    result.FirstName.data = sqlite3_column_text(stmt, 2);
+    result.LastName.data = sqlite3_column_text(stmt, 3);
+    cb(&result, userdata);
     sqlite3_finalize(stmt);
     return SQLITE_OK;
   } else if (rc == SQLITE_DONE) {
