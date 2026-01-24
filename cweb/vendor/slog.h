@@ -1,4 +1,4 @@
-/* slog.h - v0.1 - public domain structured logging for C - https://github.com/timwmillard/slog.h
+/* slog.h - v0.1 - structured logging for C
 
    This is a single-header-file STB-style library that provides structured logging in C,
    inspired by Go's slog package.
@@ -8,9 +8,7 @@
       #include "slog.h"
 
    LICENSE
-     This software is in the public domain. Where that dedication is not
-     recognized, you are granted a perpetual, irrevocable license to copy,
-     distribute, and modify this file as you see fit.
+     MIT License - See end of file for full license text.
 
    USAGE
      Basic usage:
@@ -942,3 +940,22 @@ slog_handler *slog_color_text_handler_new(FILE *output, slog_level min_level) {
 
 #endif // SLOG_IMPLEMENTATION
 
+// Copyright 2026 Tim Millard
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
