@@ -282,7 +282,7 @@ func (g *Generator) generateStruct(name string, schema *openapi3.Schema) {
 		structInfo.Fields = append(structInfo.Fields, fieldInfo...)
 	}
 
-	g.out.WriteString(fmt.Sprintf("};\n\n"))
+	g.out.WriteString("};\n\n")
 
 	// Store struct info for JSON generation
 	g.structs = append(g.structs, structInfo)
@@ -800,7 +800,7 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 		g.jsonOut.WriteString("    if (p != NULL) {\n")
 
 		if f.IsArray {
-			g.jsonOut.WriteString(fmt.Sprintf("        size_t count = count_array(p);\n"))
+			g.jsonOut.WriteString("        size_t count = count_array(p);\n")
 			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = count;\n", f.CountField))
 			g.jsonOut.WriteString("        if (count > 0) {\n")
 
