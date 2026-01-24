@@ -623,7 +623,12 @@ static void slog_text_handler_handle(slog_handler *self, const slog_record *reco
             tz_buf,
             slog_level_string(record->level));
     slog_write_text_escaped(self->output, record->message, -1);
-    
+
+    // Print source info for debug level
+    if (record->level == SLOG_DEBUG) {
+        fprintf(self->output, " source=%s:%d", record->file, record->line);
+    }
+
     // Print attributes
     for (size_t i = 0; i < record->attr_count; i++) {
         fprintf(self->output, " %s=", record->attrs[i].key);
@@ -849,6 +854,13 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
 
     // Message (white/normal)
     fprintf(self->output, "%s", record->message);
+
+    // Print source info for debug level
+    if (record->level == SLOG_DEBUG) {
+        fprintf(self->output, " %ssource%s=%s%s:%d%s",
+                SLOG_COLOR_GREEN, SLOG_COLOR_RESET, SLOG_COLOR_DIM,
+                record->file, record->line, SLOG_COLOR_RESET);
+    }
 
     // Print attributes with colors
     for (size_t i = 0; i < record->attr_count; i++) {
