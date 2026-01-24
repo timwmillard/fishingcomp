@@ -153,28 +153,28 @@ slog_logger *slog_with_group(slog_logger *logger, const char *name);
 void slog_destroy(slog_logger *logger);
 
 // Logger-specific logging functions (implementation)
-void slog_log_impl(slog_logger *logger, slog_level level, const char *msg, ...);
-void slog_log_debug_impl(slog_logger *logger, const char *msg, ...);
-void slog_log_info_impl(slog_logger *logger, const char *msg, ...);
-void slog_log_warn_impl(slog_logger *logger, const char *msg, ...);
-void slog_log_error_impl(slog_logger *logger, const char *msg, ...);
+void slog_log_impl(slog_logger *logger, slog_level level, const char *file, int line, const char *func, const char *msg, ...);
+void slog_log_debug_impl(slog_logger *logger, const char *file, int line, const char *func, const char *msg, ...);
+void slog_log_info_impl(slog_logger *logger, const char *file, int line, const char *func, const char *msg, ...);
+void slog_log_warn_impl(slog_logger *logger, const char *file, int line, const char *func, const char *msg, ...);
+void slog_log_error_impl(slog_logger *logger, const char *file, int line, const char *func, const char *msg, ...);
 
 // Default logger functions (implementation)
-void slog_debug_impl(const char *msg, ...);
-void slog_info_impl(const char *msg, ...);
-void slog_warn_impl(const char *msg, ...);
-void slog_error_impl(const char *msg, ...);
+void slog_debug_impl(const char *file, int line, const char *func, const char *msg, ...);
+void slog_info_impl(const char *file, int line, const char *func, const char *msg, ...);
+void slog_warn_impl(const char *file, int line, const char *func, const char *msg, ...);
+void slog_error_impl(const char *file, int line, const char *func, const char *msg, ...);
 
-// Convenience macros that auto-append NULL
-#define slog_log(logger, level, ...) slog_log_va(logger, level, __VA_ARGS__, NULL)
-#define slog_log_debug(logger, ...) slog_log_debug_impl(logger, __VA_ARGS__, NULL)
-#define slog_log_info(logger, ...) slog_log_info_impl(logger, __VA_ARGS__, NULL)
-#define slog_log_warn(logger, ...) slog_log_warn_impl(logger, __VA_ARGS__, NULL)
-#define slog_log_error(logger, ...) slog_log_error_impl(logger, __VA_ARGS__, NULL)
-#define slog_debug(...) slog_debug_impl(__VA_ARGS__, NULL)
-#define slog_info(...) slog_info_impl(__VA_ARGS__, NULL)
-#define slog_warn(...) slog_warn_impl(__VA_ARGS__, NULL)
-#define slog_error(...) slog_error_impl(__VA_ARGS__, NULL)
+// Convenience macros that auto-append NULL and capture source location
+#define slog_log(logger, level, ...) slog_log_impl(logger, level, __FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
+#define slog_log_debug(logger, ...) slog_log_debug_impl(logger, __FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
+#define slog_log_info(logger, ...) slog_log_info_impl(logger, __FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
+#define slog_log_warn(logger, ...) slog_log_warn_impl(logger, __FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
+#define slog_log_error(logger, ...) slog_log_error_impl(logger, __FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
+#define slog_debug(...) slog_debug_impl(__FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
+#define slog_info(...) slog_info_impl(__FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
+#define slog_warn(...) slog_warn_impl(__FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
+#define slog_error(...) slog_error_impl(__FILE__, __LINE__, __func__, __VA_ARGS__, NULL)
 
 // Attribute constructors (macros that create compound literals)
 #define slog_string(k, v) (&(slog_attr){.key = (k), .type = SLOG_TYPE_STRING, .value.string_val = (v)})
@@ -489,18 +489,18 @@ static void slog_log_va(slog_logger *logger, slog_level level, const char *msg,
 }
 
 // Logger-specific logging functions (implementation)
-void slog_log_impl(slog_logger *logger, slog_level level, const char *msg, ...) {
+void slog_log_impl(slog_logger *logger, slog_level level, const char *file, int line, const char *func, const char *msg, ...) {
     va_list args;
     va_start(args, msg);
-    slog_log_va(logger, level, msg, __FILE__, __LINE__, __func__, args);
+    slog_log_va(logger, level, msg, file, line, func, args);
     va_end(args);
 }
 
 #define SLOG_LOGGER_FUNC(name, level) \
-void slog_log_##name##_impl(slog_logger *logger, const char *msg, ...) { \
+void slog_log_##name##_impl(slog_logger *logger, const char *file, int line, const char *func, const char *msg, ...) { \
     va_list args; \
     va_start(args, msg); \
-    slog_log_va(logger, level, msg, __FILE__, __LINE__, __func__, args); \
+    slog_log_va(logger, level, msg, file, line, func, args); \
     va_end(args); \
 }
 
@@ -511,12 +511,12 @@ SLOG_LOGGER_FUNC(error, SLOG_ERROR)
 
 // Default logger functions (implementation)
 #define SLOG_DEFAULT_FUNC(name, level) \
-void slog_##name##_impl(const char *msg, ...) { \
+void slog_##name##_impl(const char *file, int line, const char *func, const char *msg, ...) { \
     slog_logger *logger = slog_get_default(); \
     if (!logger) return; \
     va_list args; \
     va_start(args, msg); \
-    slog_log_va(logger, level, msg, __FILE__, __LINE__, __func__, args); \
+    slog_log_va(logger, level, msg, file, line, func, args); \
     va_end(args); \
 }
 
@@ -626,7 +626,7 @@ static void slog_text_handler_handle(slog_handler *self, const slog_record *reco
 
     // Print source info for debug level
     if (record->level == SLOG_DEBUG) {
-        fprintf(self->output, " source=\"%s:%d (%s)\"", record->file, record->line, record->function);
+        fprintf(self->output, " source=\"%s:%d\"", record->file, record->line);
     }
 
     // Print attributes
@@ -782,8 +782,13 @@ static void slog_json_handler_handle(slog_handler *self, const slog_record *reco
 
     if (record->level == SLOG_DEBUG) {
         // Source
-        fprintf(self->output, "\"source\":{\"file\":\"%s\",\"line\":%d,\"function\":\"%s\"},",
-                record->file, record->line, record->function);
+        if (record->function && record->function[0] != '\0') {
+            fprintf(self->output, ",\"source\":{\"file\":\"%s\",\"line\":%d,\"function\":\"%s\"}",
+                    record->file, record->line, record->function);
+        } else {
+            fprintf(self->output, ",\"source\":{\"file\":\"%s\",\"line\":%d}",
+                    record->file, record->line);
+        }
     }
     
     fprintf(self->output, "}\n");
@@ -907,9 +912,9 @@ static void slog_color_text_handler_handle(slog_handler *self, const slog_record
     
     // Print source info for debug level
     if (record->level == SLOG_DEBUG) {
-        fprintf(self->output, " %ssource%s=%s\"%s:%d (%s)\"%s",
+        fprintf(self->output, " %ssource%s=%s\"%s:%d\"%s",
                 SLOG_COLOR_GREEN, SLOG_COLOR_RESET, SLOG_COLOR_DIM,
-                record->file, record->line, record->function, SLOG_COLOR_RESET);
+                record->file, record->line, SLOG_COLOR_RESET);
     }
 
     fprintf(self->output, "\n");

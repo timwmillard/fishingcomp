@@ -71,6 +71,10 @@ add_executable(${PROJECT_NAME}
   vendor/unit.c
 )
 
+# Track vendor headers so changes trigger rebuilds
+file(GLOB VENDOR_HEADERS ${CMAKE_SOURCE_DIR}/vendor/*)
+target_sources(${PROJECT_NAME} PRIVATE ${VENDOR_HEADERS})
+
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${CMAKE_SOURCE_DIR}/vendor
 )
