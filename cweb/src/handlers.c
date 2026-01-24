@@ -5,6 +5,9 @@
 #include "cweb.h"
 
 #include "models.h"
+#include "api.h"
+#include "api_json.c"
+
 
 int sql_GetCompetitor(sql_context *ctx, sql_int64 id, Competitor *result);
 int sql_GetCompetitor_cb(sql_context *ctx, sql_int64 id, void (*cb)(Competitor *, void*), void *userdata);
@@ -112,7 +115,7 @@ void get_competitor_v2(Req *req, Res *res) {
     );
 }
 
-void get_competitor(Req *req, Res *res) {
+void get_competitor_v1(Req *req, Res *res) {
     const char *id_str = get_param(req, "id");
     int id = atoi(id_str);
 
@@ -153,6 +156,41 @@ void get_competitor(Req *req, Res *res) {
     send_json(res, OK, res_body);
 }
 
+void api_get_competitor_res(Competitor *comp, void *data) {
+    Res *res = data;
+
+    char *body = competitor_to_json(&(api_Competitor){
+            .id = comp->ID,
+            .first_name = (char*)comp->FirstName.data,
+            .last_name = (char*)comp->LastName.data,
+        });
+    send_json(res, OK, body);
+}
+
+// GET /competitors/{id} - Get a competitor by ID
+void api_get_competitor(Req *req, Res *res) {
+    const char *id_str = get_param(req, "id");
+    int id = atoi(id_str);
+
+    slog_debug("Competitor getting",
+            slog_int("id", id)
+    );
+
+    Competitor comp;
+    int rc = sql_GetCompetitor_cb(&sqlctx, id, api_get_competitor_res, res);
+    if (rc != SQLITE_OK) {
+        slog_error("Competitor not found",
+                slog_int("id", id)
+        );
+        send_json(res, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
+        return;
+    }
+
+    slog_info("Competitor get",
+            slog_int("id", id)
+    );
+}
+
 void log_handle(Req *req, Res *res) {
     slog_debug("Debugging log",
             slog_bool("status", true)
@@ -176,6 +214,9 @@ void routes() {
     post("/log/level/:level", set_log_level_handle);
     get("/hello", hello);
     get("/users/:id", get_user);
-    get("/v1/competitors/:id", get_competitor);
+    get("/v1/competitors/:id", get_competitor_v1);
     get("/v2/competitors/:id", get_competitor_v2);
+
+    // API
+    get("/api/competitors/:id", api_get_competitor);
 }
