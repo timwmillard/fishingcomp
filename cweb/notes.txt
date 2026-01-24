@@ -1,0 +1,19 @@
+
+
+Generating C code is the future.
+
+generate sql code from schema.sql and queries.sql
+
+geernate api types from spec.yaml
+
+Need to work out memory allocation and using arenas.
+
+First work on system with json parsing and how to pass and arena.
+
+With sqlite generated code, have two version
+
+1. Pass in a pre allocated struct.
+2. Dyamically sized (ie array of X) - pass in an arena (same style as oapi2c)
+3. Generate a callback style where use populates the struct.
+4. Callback will have two version.  Single call back and mutli callback for :many
+
