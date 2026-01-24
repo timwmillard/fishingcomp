@@ -1,4 +1,4 @@
-module codegen
+module oapi2c
 
 go 1.25.0
 
