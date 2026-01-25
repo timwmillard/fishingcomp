@@ -248,6 +248,11 @@ func (g *Generator) generate(outputFile string) {
 	// Generate Allocator typedef if enabled
 	if g.useAllocator && g.genJSON {
 		g.generateAllocatorTypedef()
+
+		// Generate arena adapter for ecewo
+		if g.framework == "ecewo" {
+			g.generateArenaAllocator()
+		}
 	}
 
 	// Generate enums first (before structs that may use them)
@@ -290,11 +295,25 @@ func (g *Generator) generateAllocatorTypedef() {
 	allocName := g.typeName("Allocator")
 	g.out.WriteString("// ============ Allocator ============\n\n")
 	g.out.WriteString("// Allocator interface - pass NULL to use malloc/free\n")
-	g.out.WriteString(fmt.Sprintf("typedef struct {\n"))
+	g.out.WriteString("typedef struct {\n")
 	g.out.WriteString("    void* (*alloc)(void *ctx, size_t size);\n")
 	g.out.WriteString("    void  (*free)(void *ctx, void *ptr);  // Can be NULL for arenas\n")
 	g.out.WriteString("    void *ctx;\n")
 	g.out.WriteString(fmt.Sprintf("} %s;\n\n", allocName))
+}
+
+func (g *Generator) generateArenaAllocator() {
+	allocName := g.typeName("Allocator")
+	funcPrefix := g.funcPrefix
+
+	g.out.WriteString("// Arena to Allocator adapter for ecewo\n")
+	g.out.WriteString(fmt.Sprintf("static inline void *%sarena_alloc_fn(void *ctx, size_t size) {\n", funcPrefix))
+	g.out.WriteString("    return arena_alloc((Arena *)ctx, size);\n")
+	g.out.WriteString("}\n\n")
+
+	g.out.WriteString(fmt.Sprintf("static inline %s %sarena_allocator(Arena *arena) {\n", allocName, funcPrefix))
+	g.out.WriteString(fmt.Sprintf("    return (%s){ .alloc = %sarena_alloc_fn, .free = NULL, .ctx = arena };\n", allocName, funcPrefix))
+	g.out.WriteString("}\n\n")
 }
 
 func (g *Generator) generateForwardDeclarations() {

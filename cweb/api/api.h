@@ -18,6 +18,15 @@ typedef struct {
     void *ctx;
 } api_Allocator;
 
+// Arena to Allocator adapter for ecewo
+static inline void *api_arena_alloc_fn(void *ctx, size_t size) {
+    return arena_alloc((Arena *)ctx, size);
+}
+
+static inline api_Allocator api_arena_allocator(Arena *arena) {
+    return (api_Allocator){ .alloc = api_arena_alloc_fn, .free = NULL, .ctx = arena };
+}
+
 // ============ Enums ============
 
 // Struct forward declarations
