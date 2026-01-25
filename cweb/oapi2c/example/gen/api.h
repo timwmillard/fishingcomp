@@ -11,6 +11,15 @@
 typedef struct Req Req;
 typedef struct Res Res;
 
+// ============ Allocator ============
+
+// Allocator interface - pass NULL to use malloc/free
+typedef struct {
+    void* (*alloc)(void *ctx, size_t size);
+    void  (*free)(void *ctx, void *ptr);  // Can be NULL for arenas
+    void *ctx;
+} api_Allocator;
+
 // ============ Enums ============
 
 // Status of a catch verification
@@ -123,29 +132,29 @@ const char *api_catch_status_to_string(api_CatchStatus val);
 api_CatchStatus api_catch_status_from_string(const char *str);
 
 // JSON serialization for api_Boat
-char *api_boat_to_json(api_Boat *obj);
-int api_boat_from_json(const char *json, api_Boat *obj);
-void api_boat_free(api_Boat *obj);
+char *api_boat_to_json(api_Allocator *alloc, api_Boat *obj);
+int api_boat_from_json(api_Allocator *alloc, const char *json, api_Boat *obj);
+void api_boat_free(api_Allocator *alloc, api_Boat *obj);
 
 // JSON serialization for api_Catch
-char *api_catch_to_json(api_Catch *obj);
-int api_catch_from_json(const char *json, api_Catch *obj);
-void api_catch_free(api_Catch *obj);
+char *api_catch_to_json(api_Allocator *alloc, api_Catch *obj);
+int api_catch_from_json(api_Allocator *alloc, const char *json, api_Catch *obj);
+void api_catch_free(api_Allocator *alloc, api_Catch *obj);
 
 // JSON serialization for api_Competitor
-char *api_competitor_to_json(api_Competitor *obj);
-int api_competitor_from_json(const char *json, api_Competitor *obj);
-void api_competitor_free(api_Competitor *obj);
+char *api_competitor_to_json(api_Allocator *alloc, api_Competitor *obj);
+int api_competitor_from_json(api_Allocator *alloc, const char *json, api_Competitor *obj);
+void api_competitor_free(api_Allocator *alloc, api_Competitor *obj);
 
 // JSON serialization for api_LeaderboardEntry
-char *api_leaderboard_entry_to_json(api_LeaderboardEntry *obj);
-int api_leaderboard_entry_from_json(const char *json, api_LeaderboardEntry *obj);
-void api_leaderboard_entry_free(api_LeaderboardEntry *obj);
+char *api_leaderboard_entry_to_json(api_Allocator *alloc, api_LeaderboardEntry *obj);
+int api_leaderboard_entry_from_json(api_Allocator *alloc, const char *json, api_LeaderboardEntry *obj);
+void api_leaderboard_entry_free(api_Allocator *alloc, api_LeaderboardEntry *obj);
 
 // JSON serialization for api_Species
-char *api_species_to_json(api_Species *obj);
-int api_species_from_json(const char *json, api_Species *obj);
-void api_species_free(api_Species *obj);
+char *api_species_to_json(api_Allocator *alloc, api_Species *obj);
+int api_species_from_json(api_Allocator *alloc, const char *json, api_Species *obj);
+void api_species_free(api_Allocator *alloc, api_Species *obj);
 
 // ============ Handlers ============
 

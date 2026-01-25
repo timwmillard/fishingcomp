@@ -8,6 +8,26 @@
 
 // ============ JSON Helper Functions ============
 
+// Allocator helpers - use allocator if provided, otherwise malloc/free
+static void *json_alloc(api_Allocator *alloc, size_t size) {
+    if (alloc && alloc->alloc) return alloc->alloc(alloc->ctx, size);
+    return malloc(size);
+}
+
+static void *json_calloc(api_Allocator *alloc, size_t count, size_t size) {
+    size_t total = count * size;
+    void *ptr = json_alloc(alloc, total);
+    if (ptr) memset(ptr, 0, total);
+    return ptr;
+}
+
+static void json_free(api_Allocator *alloc, void *ptr) {
+    if (ptr == NULL) return;
+    if (alloc && alloc->free) { alloc->free(alloc->ctx, ptr); return; }
+    if (alloc && alloc->alloc) return; // Arena without free - don't call free()
+    free(ptr);
+}
+
 static const char *skip_ws(const char *p) {
     while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
     return p;
@@ -85,7 +105,7 @@ static const char *find_key(const char *json, const char *key) {
     return NULL;
 }
 
-static char *parse_string(const char *p, const char **endp) {
+static char *parse_string(api_Allocator *alloc, const char *p, const char **endp) {
     p = skip_ws(p);
     if (*p != '"') { *endp = p; return NULL; }
     p++;
@@ -95,7 +115,7 @@ static char *parse_string(const char *p, const char **endp) {
         if (*p == '\\' && *(p+1)) { p += 2; len++; }
         else { p++; len++; }
     }
-    char *str = malloc(len + 1);
+    char *str = json_alloc(alloc, len + 1);
     if (!str) { *endp = p; return NULL; }
     const char *s = start;
     char *d = str;
@@ -219,25 +239,26 @@ api_CatchStatus api_catch_status_from_string(const char *str) {
 }
 
 // Forward declarations
-static const char *api_boat_parse(const char *json, api_Boat *obj);
-static int api_boat_write(char *buf, size_t size, api_Boat *obj);
-static const char *api_catch_parse(const char *json, api_Catch *obj);
-static int api_catch_write(char *buf, size_t size, api_Catch *obj);
-static const char *api_competitor_parse(const char *json, api_Competitor *obj);
-static int api_competitor_write(char *buf, size_t size, api_Competitor *obj);
-static const char *api_leaderboard_entry_parse(const char *json, api_LeaderboardEntry *obj);
-static int api_leaderboard_entry_write(char *buf, size_t size, api_LeaderboardEntry *obj);
-static const char *api_species_parse(const char *json, api_Species *obj);
-static int api_species_write(char *buf, size_t size, api_Species *obj);
+static const char *api_boat_parse(api_Allocator *alloc, const char *json, api_Boat *obj);
+static int api_boat_write(api_Allocator *alloc, char *buf, size_t size, api_Boat *obj);
+static const char *api_catch_parse(api_Allocator *alloc, const char *json, api_Catch *obj);
+static int api_catch_write(api_Allocator *alloc, char *buf, size_t size, api_Catch *obj);
+static const char *api_competitor_parse(api_Allocator *alloc, const char *json, api_Competitor *obj);
+static int api_competitor_write(api_Allocator *alloc, char *buf, size_t size, api_Competitor *obj);
+static const char *api_leaderboard_entry_parse(api_Allocator *alloc, const char *json, api_LeaderboardEntry *obj);
+static int api_leaderboard_entry_write(api_Allocator *alloc, char *buf, size_t size, api_LeaderboardEntry *obj);
+static const char *api_species_parse(api_Allocator *alloc, const char *json, api_Species *obj);
+static int api_species_write(api_Allocator *alloc, char *buf, size_t size, api_Species *obj);
 
-static int api_boat_write(char *buf, size_t size, api_Boat *obj) {
+static int api_boat_write(api_Allocator *alloc, char *buf, size_t size, api_Boat *obj) {
+    (void)alloc; // unused in write, but kept for consistent signature
     if (obj == NULL) return snprintf(buf, size, "null");
     int len = 0;
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "{");
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\"crew\":[");
     for (size_t i = 0; i < obj->crew_count; i++) {
         if (i > 0) len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",");
-        len += api_competitor_write(buf + len, size > (size_t)len ? size - len : 0, &obj->crew[i]);
+        len += api_competitor_write(alloc, buf + len, size > (size_t)len ? size - len : 0, &obj->crew[i]);
     }
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "]");
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"id\":%lld", (long long)obj->id);
@@ -249,15 +270,15 @@ static int api_boat_write(char *buf, size_t size, api_Boat *obj) {
     return len;
 }
 
-char *api_boat_to_json(api_Boat *obj) {
-    int len = api_boat_write(NULL, 0, obj);
-    char *buf = malloc(len + 1);
+char *api_boat_to_json(api_Allocator *alloc, api_Boat *obj) {
+    int len = api_boat_write(alloc, NULL, 0, obj);
+    char *buf = json_alloc(alloc, len + 1);
     if (buf == NULL) return NULL;
-    api_boat_write(buf, len + 1, obj);
+    api_boat_write(alloc, buf, len + 1, obj);
     return buf;
 }
 
-static const char *api_boat_parse(const char *json, api_Boat *obj) {
+static const char *api_boat_parse(api_Allocator *alloc, const char *json, api_Boat *obj) {
     if (json == NULL || obj == NULL) return NULL;
     memset(obj, 0, sizeof(*obj));
     const char *p;
@@ -268,10 +289,10 @@ static const char *api_boat_parse(const char *json, api_Boat *obj) {
         size_t count = count_array(p);
         obj->crew_count = count;
         if (count > 0) {
-            obj->crew = calloc(count, sizeof(api_Competitor));
+            obj->crew = json_calloc(alloc, count, sizeof(api_Competitor));
             const char *elem = array_first(p);
             for (size_t i = 0; i < count && elem; i++) {
-                api_competitor_parse(elem, &obj->crew[i]);
+                api_competitor_parse(alloc, elem, &obj->crew[i]);
                 elem = array_next(elem);
             }
         }
@@ -284,30 +305,31 @@ static const char *api_boat_parse(const char *json, api_Boat *obj) {
 
     p = find_key(json, "name");
     if (p != NULL) {
-        obj->name = parse_string(p, &p);
+        obj->name = parse_string(alloc, p, &p);
     }
 
     p = find_key(json, "registration");
     if (p != NULL) {
-        obj->registration = parse_string(p, &p);
+        obj->registration = parse_string(alloc, p, &p);
     }
 
     return skip_value(json);
 }
 
-int api_boat_from_json(const char *json, api_Boat *obj) {
-    return api_boat_parse(json, obj) != NULL ? 0 : -1;
+int api_boat_from_json(api_Allocator *alloc, const char *json, api_Boat *obj) {
+    return api_boat_parse(alloc, json, obj) != NULL ? 0 : -1;
 }
 
-void api_boat_free(api_Boat *obj) {
+void api_boat_free(api_Allocator *alloc, api_Boat *obj) {
     if (obj == NULL) return;
-    for (size_t i = 0; i < obj->crew_count; i++) api_competitor_free(&obj->crew[i]);
-    free(obj->crew);
-    free(obj->name);
-    free(obj->registration);
+    for (size_t i = 0; i < obj->crew_count; i++) api_competitor_free(alloc, &obj->crew[i]);
+    json_free(alloc, obj->crew);
+    json_free(alloc, obj->name);
+    json_free(alloc, obj->registration);
 }
 
-static int api_catch_write(char *buf, size_t size, api_Catch *obj) {
+static int api_catch_write(api_Allocator *alloc, char *buf, size_t size, api_Catch *obj) {
+    (void)alloc; // unused in write, but kept for consistent signature
     if (obj == NULL) return snprintf(buf, size, "null");
     int len = 0;
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "{");
@@ -324,7 +346,7 @@ static int api_catch_write(char *buf, size_t size, api_Catch *obj) {
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "]");
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"points\":%g", (double)obj->points);
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"species\":");
-    len += api_species_write(buf + len, size > (size_t)len ? size - len : 0, obj->species);
+    len += api_species_write(alloc, buf + len, size > (size_t)len ? size - len : 0, obj->species);
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"status\":");
     len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, api_catch_status_to_string(obj->status));
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"verified\":%s", obj->verified ? "true" : "false");
@@ -333,15 +355,15 @@ static int api_catch_write(char *buf, size_t size, api_Catch *obj) {
     return len;
 }
 
-char *api_catch_to_json(api_Catch *obj) {
-    int len = api_catch_write(NULL, 0, obj);
-    char *buf = malloc(len + 1);
+char *api_catch_to_json(api_Allocator *alloc, api_Catch *obj) {
+    int len = api_catch_write(alloc, NULL, 0, obj);
+    char *buf = json_alloc(alloc, len + 1);
     if (buf == NULL) return NULL;
-    api_catch_write(buf, len + 1, obj);
+    api_catch_write(alloc, buf, len + 1, obj);
     return buf;
 }
 
-static const char *api_catch_parse(const char *json, api_Catch *obj) {
+static const char *api_catch_parse(api_Allocator *alloc, const char *json, api_Catch *obj) {
     if (json == NULL || obj == NULL) return NULL;
     memset(obj, 0, sizeof(*obj));
     const char *p;
@@ -349,7 +371,7 @@ static const char *api_catch_parse(const char *json, api_Catch *obj) {
 
     p = find_key(json, "caught_at");
     if (p != NULL) {
-        obj->caught_at = parse_string(p, &p);
+        obj->caught_at = parse_string(alloc, p, &p);
     }
 
     p = find_key(json, "competitor_id");
@@ -372,10 +394,10 @@ static const char *api_catch_parse(const char *json, api_Catch *obj) {
         size_t count = count_array(p);
         obj->photos_count = count;
         if (count > 0) {
-            obj->photos = calloc(count, sizeof(char*));
+            obj->photos = json_calloc(alloc, count, sizeof(char*));
             const char *elem = array_first(p);
             for (size_t i = 0; i < count && elem; i++) {
-                obj->photos[i] = parse_string(elem, &elem);
+                obj->photos[i] = parse_string(alloc, elem, &elem);
                 elem = array_next(elem);
             }
         }
@@ -388,15 +410,15 @@ static const char *api_catch_parse(const char *json, api_Catch *obj) {
 
     p = find_key(json, "species");
     if (p != NULL) {
-        obj->species = calloc(1, sizeof(api_Species));
-        if (obj->species) api_species_parse(p, obj->species);
+        obj->species = json_calloc(alloc, 1, sizeof(api_Species));
+        if (obj->species) api_species_parse(alloc, p, obj->species);
     }
 
     p = find_key(json, "status");
     if (p != NULL) {
-        char *str = parse_string(p, &p);
+        char *str = parse_string(alloc, p, &p);
         obj->status = api_catch_status_from_string(str);
-        free(str);
+        json_free(alloc, str);
     }
 
     p = find_key(json, "verified");
@@ -412,28 +434,29 @@ static const char *api_catch_parse(const char *json, api_Catch *obj) {
     return skip_value(json);
 }
 
-int api_catch_from_json(const char *json, api_Catch *obj) {
-    return api_catch_parse(json, obj) != NULL ? 0 : -1;
+int api_catch_from_json(api_Allocator *alloc, const char *json, api_Catch *obj) {
+    return api_catch_parse(alloc, json, obj) != NULL ? 0 : -1;
 }
 
-void api_catch_free(api_Catch *obj) {
+void api_catch_free(api_Allocator *alloc, api_Catch *obj) {
     if (obj == NULL) return;
-    free(obj->caught_at);
-    for (size_t i = 0; i < obj->photos_count; i++) free(obj->photos[i]);
-    free(obj->photos);
-    if (obj->species) { api_species_free(obj->species); free(obj->species); }
+    json_free(alloc, obj->caught_at);
+    for (size_t i = 0; i < obj->photos_count; i++) json_free(alloc, obj->photos[i]);
+    json_free(alloc, obj->photos);
+    if (obj->species) { api_species_free(alloc, obj->species); json_free(alloc, obj->species); }
 }
 
-static int api_competitor_write(char *buf, size_t size, api_Competitor *obj) {
+static int api_competitor_write(api_Allocator *alloc, char *buf, size_t size, api_Competitor *obj) {
+    (void)alloc; // unused in write, but kept for consistent signature
     if (obj == NULL) return snprintf(buf, size, "null");
     int len = 0;
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "{");
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\"boat\":");
-    len += api_boat_write(buf + len, size > (size_t)len ? size - len : 0, obj->boat);
+    len += api_boat_write(alloc, buf + len, size > (size_t)len ? size - len : 0, obj->boat);
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"catches\":[");
     for (size_t i = 0; i < obj->catches_count; i++) {
         if (i > 0) len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",");
-        len += api_catch_write(buf + len, size > (size_t)len ? size - len : 0, &obj->catches[i]);
+        len += api_catch_write(alloc, buf + len, size > (size_t)len ? size - len : 0, &obj->catches[i]);
     }
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "]");
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"created_at\":");
@@ -446,15 +469,15 @@ static int api_competitor_write(char *buf, size_t size, api_Competitor *obj) {
     return len;
 }
 
-char *api_competitor_to_json(api_Competitor *obj) {
-    int len = api_competitor_write(NULL, 0, obj);
-    char *buf = malloc(len + 1);
+char *api_competitor_to_json(api_Allocator *alloc, api_Competitor *obj) {
+    int len = api_competitor_write(alloc, NULL, 0, obj);
+    char *buf = json_alloc(alloc, len + 1);
     if (buf == NULL) return NULL;
-    api_competitor_write(buf, len + 1, obj);
+    api_competitor_write(alloc, buf, len + 1, obj);
     return buf;
 }
 
-static const char *api_competitor_parse(const char *json, api_Competitor *obj) {
+static const char *api_competitor_parse(api_Allocator *alloc, const char *json, api_Competitor *obj) {
     if (json == NULL || obj == NULL) return NULL;
     memset(obj, 0, sizeof(*obj));
     const char *p;
@@ -462,8 +485,8 @@ static const char *api_competitor_parse(const char *json, api_Competitor *obj) {
 
     p = find_key(json, "boat");
     if (p != NULL) {
-        obj->boat = calloc(1, sizeof(api_Boat));
-        if (obj->boat) api_boat_parse(p, obj->boat);
+        obj->boat = json_calloc(alloc, 1, sizeof(api_Boat));
+        if (obj->boat) api_boat_parse(alloc, p, obj->boat);
     }
 
     p = find_key(json, "catches");
@@ -471,10 +494,10 @@ static const char *api_competitor_parse(const char *json, api_Competitor *obj) {
         size_t count = count_array(p);
         obj->catches_count = count;
         if (count > 0) {
-            obj->catches = calloc(count, sizeof(api_Catch));
+            obj->catches = json_calloc(alloc, count, sizeof(api_Catch));
             const char *elem = array_first(p);
             for (size_t i = 0; i < count && elem; i++) {
-                api_catch_parse(elem, &obj->catches[i]);
+                api_catch_parse(alloc, elem, &obj->catches[i]);
                 elem = array_next(elem);
             }
         }
@@ -482,7 +505,7 @@ static const char *api_competitor_parse(const char *json, api_Competitor *obj) {
 
     p = find_key(json, "created_at");
     if (p != NULL) {
-        obj->created_at = parse_string(p, &p);
+        obj->created_at = parse_string(alloc, p, &p);
     }
 
     p = find_key(json, "id");
@@ -492,7 +515,7 @@ static const char *api_competitor_parse(const char *json, api_Competitor *obj) {
 
     p = find_key(json, "name");
     if (p != NULL) {
-        obj->name = parse_string(p, &p);
+        obj->name = parse_string(alloc, p, &p);
     }
 
     p = find_key(json, "total_points");
@@ -503,25 +526,26 @@ static const char *api_competitor_parse(const char *json, api_Competitor *obj) {
     return skip_value(json);
 }
 
-int api_competitor_from_json(const char *json, api_Competitor *obj) {
-    return api_competitor_parse(json, obj) != NULL ? 0 : -1;
+int api_competitor_from_json(api_Allocator *alloc, const char *json, api_Competitor *obj) {
+    return api_competitor_parse(alloc, json, obj) != NULL ? 0 : -1;
 }
 
-void api_competitor_free(api_Competitor *obj) {
+void api_competitor_free(api_Allocator *alloc, api_Competitor *obj) {
     if (obj == NULL) return;
-    if (obj->boat) { api_boat_free(obj->boat); free(obj->boat); }
-    for (size_t i = 0; i < obj->catches_count; i++) api_catch_free(&obj->catches[i]);
-    free(obj->catches);
-    free(obj->created_at);
-    free(obj->name);
+    if (obj->boat) { api_boat_free(alloc, obj->boat); json_free(alloc, obj->boat); }
+    for (size_t i = 0; i < obj->catches_count; i++) api_catch_free(alloc, &obj->catches[i]);
+    json_free(alloc, obj->catches);
+    json_free(alloc, obj->created_at);
+    json_free(alloc, obj->name);
 }
 
-static int api_leaderboard_entry_write(char *buf, size_t size, api_LeaderboardEntry *obj) {
+static int api_leaderboard_entry_write(api_Allocator *alloc, char *buf, size_t size, api_LeaderboardEntry *obj) {
+    (void)alloc; // unused in write, but kept for consistent signature
     if (obj == NULL) return snprintf(buf, size, "null");
     int len = 0;
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "{");
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\"competitor\":");
-    len += api_competitor_write(buf + len, size > (size_t)len ? size - len : 0, obj->competitor);
+    len += api_competitor_write(alloc, buf + len, size > (size_t)len ? size - len : 0, obj->competitor);
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"rank\":%lld", (long long)obj->rank);
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"total_catches\":%lld", (long long)obj->total_catches);
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, ",\"total_points\":%g", (double)obj->total_points);
@@ -530,15 +554,15 @@ static int api_leaderboard_entry_write(char *buf, size_t size, api_LeaderboardEn
     return len;
 }
 
-char *api_leaderboard_entry_to_json(api_LeaderboardEntry *obj) {
-    int len = api_leaderboard_entry_write(NULL, 0, obj);
-    char *buf = malloc(len + 1);
+char *api_leaderboard_entry_to_json(api_Allocator *alloc, api_LeaderboardEntry *obj) {
+    int len = api_leaderboard_entry_write(alloc, NULL, 0, obj);
+    char *buf = json_alloc(alloc, len + 1);
     if (buf == NULL) return NULL;
-    api_leaderboard_entry_write(buf, len + 1, obj);
+    api_leaderboard_entry_write(alloc, buf, len + 1, obj);
     return buf;
 }
 
-static const char *api_leaderboard_entry_parse(const char *json, api_LeaderboardEntry *obj) {
+static const char *api_leaderboard_entry_parse(api_Allocator *alloc, const char *json, api_LeaderboardEntry *obj) {
     if (json == NULL || obj == NULL) return NULL;
     memset(obj, 0, sizeof(*obj));
     const char *p;
@@ -546,8 +570,8 @@ static const char *api_leaderboard_entry_parse(const char *json, api_Leaderboard
 
     p = find_key(json, "competitor");
     if (p != NULL) {
-        obj->competitor = calloc(1, sizeof(api_Competitor));
-        if (obj->competitor) api_competitor_parse(p, obj->competitor);
+        obj->competitor = json_calloc(alloc, 1, sizeof(api_Competitor));
+        if (obj->competitor) api_competitor_parse(alloc, p, obj->competitor);
     }
 
     p = find_key(json, "rank");
@@ -573,16 +597,17 @@ static const char *api_leaderboard_entry_parse(const char *json, api_Leaderboard
     return skip_value(json);
 }
 
-int api_leaderboard_entry_from_json(const char *json, api_LeaderboardEntry *obj) {
-    return api_leaderboard_entry_parse(json, obj) != NULL ? 0 : -1;
+int api_leaderboard_entry_from_json(api_Allocator *alloc, const char *json, api_LeaderboardEntry *obj) {
+    return api_leaderboard_entry_parse(alloc, json, obj) != NULL ? 0 : -1;
 }
 
-void api_leaderboard_entry_free(api_LeaderboardEntry *obj) {
+void api_leaderboard_entry_free(api_Allocator *alloc, api_LeaderboardEntry *obj) {
     if (obj == NULL) return;
-    if (obj->competitor) { api_competitor_free(obj->competitor); free(obj->competitor); }
+    if (obj->competitor) { api_competitor_free(alloc, obj->competitor); json_free(alloc, obj->competitor); }
 }
 
-static int api_species_write(char *buf, size_t size, api_Species *obj) {
+static int api_species_write(api_Allocator *alloc, char *buf, size_t size, api_Species *obj) {
+    (void)alloc; // unused in write, but kept for consistent signature
     if (obj == NULL) return snprintf(buf, size, "null");
     int len = 0;
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "{");
@@ -603,15 +628,15 @@ static int api_species_write(char *buf, size_t size, api_Species *obj) {
     return len;
 }
 
-char *api_species_to_json(api_Species *obj) {
-    int len = api_species_write(NULL, 0, obj);
-    char *buf = malloc(len + 1);
+char *api_species_to_json(api_Allocator *alloc, api_Species *obj) {
+    int len = api_species_write(alloc, NULL, 0, obj);
+    char *buf = json_alloc(alloc, len + 1);
     if (buf == NULL) return NULL;
-    api_species_write(buf, len + 1, obj);
+    api_species_write(alloc, buf, len + 1, obj);
     return buf;
 }
 
-static const char *api_species_parse(const char *json, api_Species *obj) {
+static const char *api_species_parse(api_Allocator *alloc, const char *json, api_Species *obj) {
     if (json == NULL || obj == NULL) return NULL;
     memset(obj, 0, sizeof(*obj));
     const char *p;
@@ -629,7 +654,7 @@ static const char *api_species_parse(const char *json, api_Species *obj) {
 
     p = find_key(json, "name");
     if (p != NULL) {
-        obj->name = parse_string(p, &p);
+        obj->name = parse_string(alloc, p, &p);
     }
 
     p = find_key(json, "points_per_kg");
@@ -639,7 +664,7 @@ static const char *api_species_parse(const char *json, api_Species *obj) {
 
     p = find_key(json, "scientific_name");
     if (p != NULL) {
-        obj->scientific_name = parse_string(p, &p);
+        obj->scientific_name = parse_string(alloc, p, &p);
     }
 
     p = find_key(json, "tags");
@@ -647,10 +672,10 @@ static const char *api_species_parse(const char *json, api_Species *obj) {
         size_t count = count_array(p);
         obj->tags_count = count;
         if (count > 0) {
-            obj->tags = calloc(count, sizeof(char*));
+            obj->tags = json_calloc(alloc, count, sizeof(char*));
             const char *elem = array_first(p);
             for (size_t i = 0; i < count && elem; i++) {
-                obj->tags[i] = parse_string(elem, &elem);
+                obj->tags[i] = parse_string(alloc, elem, &elem);
                 elem = array_next(elem);
             }
         }
@@ -659,15 +684,15 @@ static const char *api_species_parse(const char *json, api_Species *obj) {
     return skip_value(json);
 }
 
-int api_species_from_json(const char *json, api_Species *obj) {
-    return api_species_parse(json, obj) != NULL ? 0 : -1;
+int api_species_from_json(api_Allocator *alloc, const char *json, api_Species *obj) {
+    return api_species_parse(alloc, json, obj) != NULL ? 0 : -1;
 }
 
-void api_species_free(api_Species *obj) {
+void api_species_free(api_Allocator *alloc, api_Species *obj) {
     if (obj == NULL) return;
-    free(obj->name);
-    free(obj->scientific_name);
-    for (size_t i = 0; i < obj->tags_count; i++) free(obj->tags[i]);
-    free(obj->tags);
+    json_free(alloc, obj->name);
+    json_free(alloc, obj->scientific_name);
+    for (size_t i = 0; i < obj->tags_count; i++) json_free(alloc, obj->tags[i]);
+    json_free(alloc, obj->tags);
 }
 

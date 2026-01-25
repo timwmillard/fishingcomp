@@ -22,14 +22,15 @@ const (
 
 // Config holds all configuration options
 type Config struct {
-	Spec        string `yaml:"spec"`
-	Output      string `yaml:"output"`
-	StructStyle string `yaml:"struct-style"`
-	FieldStyle  string `yaml:"field-style"`
-	FuncStyle   string `yaml:"func-style"`
-	GenJSON     bool   `yaml:"gen-json"`
-	TypePrefix  string `yaml:"type-prefix"`
-	FuncPrefix  string `yaml:"func-prefix"`
+	Spec         string `yaml:"spec"`
+	Output       string `yaml:"output"`
+	StructStyle  string `yaml:"struct-style"`
+	FieldStyle   string `yaml:"field-style"`
+	FuncStyle    string `yaml:"func-style"`
+	GenJSON      bool   `yaml:"gen-json"`
+	TypePrefix   string `yaml:"type-prefix"`
+	FuncPrefix   string `yaml:"func-prefix"`
+	UseAllocator bool   `yaml:"use-allocator"`
 }
 
 // FieldInfo stores information about a struct field for JSON generation
@@ -68,17 +69,18 @@ type StructInfo struct {
 }
 
 type Generator struct {
-	doc         *openapi3.T
-	out         strings.Builder
-	jsonOut     strings.Builder
-	structStyle NamingStyle
-	fieldStyle  NamingStyle
-	funcStyle   NamingStyle
-	genJSON     bool
-	typePrefix  string       // Prefix for type names (structs, enums)
-	funcPrefix  string       // Prefix for function names
-	structs     []StructInfo // Collected struct info for JSON generation
-	enums       []EnumInfo   // Collected enum info for JSON generation
+	doc          *openapi3.T
+	out          strings.Builder
+	jsonOut      strings.Builder
+	structStyle  NamingStyle
+	fieldStyle   NamingStyle
+	funcStyle    NamingStyle
+	genJSON      bool
+	typePrefix   string       // Prefix for type names (structs, enums)
+	funcPrefix   string       // Prefix for function names
+	useAllocator bool         // Add allocator parameter to JSON functions
+	structs      []StructInfo // Collected struct info for JSON generation
+	enums        []EnumInfo   // Collected enum info for JSON generation
 }
 
 func loadConfig(path string) (*Config, error) {
@@ -149,6 +151,9 @@ func main() {
 		if fileCfg.FuncPrefix != "" {
 			cfg.FuncPrefix = fileCfg.FuncPrefix
 		}
+		if fileCfg.UseAllocator {
+			cfg.UseAllocator = true
+		}
 	}
 
 	// Define flags with config values as defaults
@@ -161,6 +166,7 @@ func main() {
 	genJSON := flag.Bool("gen-json", cfg.GenJSON, "Generate JSON marshal/unmarshal functions")
 	typePrefix := flag.String("type-prefix", cfg.TypePrefix, "Prefix for type names (structs, enums)")
 	funcPrefix := flag.String("func-prefix", cfg.FuncPrefix, "Prefix for function names")
+	useAllocator := flag.Bool("use-allocator", cfg.UseAllocator, "Add allocator parameter to JSON functions")
 	flag.Parse()
 
 	// Suppress unused warning
@@ -179,13 +185,14 @@ func main() {
 	}
 
 	gen := &Generator{
-		doc:         doc,
-		structStyle: NamingStyle(*structStyle),
-		fieldStyle:  NamingStyle(*fieldStyle),
-		funcStyle:   NamingStyle(*funcStyle),
-		genJSON:     *genJSON,
-		typePrefix:  *typePrefix,
-		funcPrefix:  *funcPrefix,
+		doc:          doc,
+		structStyle:  NamingStyle(*structStyle),
+		fieldStyle:   NamingStyle(*fieldStyle),
+		funcStyle:    NamingStyle(*funcStyle),
+		genJSON:      *genJSON,
+		typePrefix:   *typePrefix,
+		funcPrefix:   *funcPrefix,
+		useAllocator: *useAllocator,
 	}
 
 	gen.generate(*output)
@@ -230,6 +237,11 @@ func (g *Generator) generate(outputFile string) {
 	g.out.WriteString("typedef struct Req Req;\n")
 	g.out.WriteString("typedef struct Res Res;\n\n")
 
+	// Generate Allocator typedef if enabled
+	if g.useAllocator && g.genJSON {
+		g.generateAllocatorTypedef()
+	}
+
 	// Generate enums first (before structs that may use them)
 	g.out.WriteString("// ============ Enums ============\n\n")
 	g.generateEnums()
@@ -259,6 +271,17 @@ func (g *Generator) generate(outputFile string) {
 	if g.genJSON {
 		g.generateJSONImplementation(outputFile)
 	}
+}
+
+func (g *Generator) generateAllocatorTypedef() {
+	allocName := g.typeName("Allocator")
+	g.out.WriteString("// ============ Allocator ============\n\n")
+	g.out.WriteString("// Allocator interface - pass NULL to use malloc/free\n")
+	g.out.WriteString(fmt.Sprintf("typedef struct {\n"))
+	g.out.WriteString("    void* (*alloc)(void *ctx, size_t size);\n")
+	g.out.WriteString("    void  (*free)(void *ctx, void *ptr);  // Can be NULL for arenas\n")
+	g.out.WriteString("    void *ctx;\n")
+	g.out.WriteString(fmt.Sprintf("} %s;\n\n", allocName))
 }
 
 func (g *Generator) generateForwardDeclarations() {
@@ -650,6 +673,8 @@ func (g *Generator) openAPITypeToCType(schemaRef *openapi3.SchemaRef) string {
 }
 
 func (g *Generator) generateJSONDeclarations() {
+	allocType := g.typeName("Allocator")
+
 	// Enum string conversion functions
 	for _, e := range g.enums {
 		funcName := g.funcName(e.Name)
@@ -662,13 +687,21 @@ func (g *Generator) generateJSONDeclarations() {
 	for _, s := range g.structs {
 		funcName := g.funcName(s.Name)
 		g.out.WriteString(fmt.Sprintf("// JSON serialization for %s\n", s.StructName))
-		g.out.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj);\n", funcName, s.StructName))
-		g.out.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj);\n", funcName, s.StructName))
-		g.out.WriteString(fmt.Sprintf("void %s_free(%s *obj);\n\n", funcName, s.StructName))
+		if g.useAllocator {
+			g.out.WriteString(fmt.Sprintf("char *%s_to_json(%s *alloc, %s *obj);\n", funcName, allocType, s.StructName))
+			g.out.WriteString(fmt.Sprintf("int %s_from_json(%s *alloc, const char *json, %s *obj);\n", funcName, allocType, s.StructName))
+			g.out.WriteString(fmt.Sprintf("void %s_free(%s *alloc, %s *obj);\n\n", funcName, allocType, s.StructName))
+		} else {
+			g.out.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj);\n", funcName, s.StructName))
+			g.out.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj);\n", funcName, s.StructName))
+			g.out.WriteString(fmt.Sprintf("void %s_free(%s *obj);\n\n", funcName, s.StructName))
+		}
 	}
 }
 
 func (g *Generator) generateJSONImplementation(headerFile string) {
+	allocType := g.typeName("Allocator")
+
 	g.jsonOut.WriteString("// Generated from OpenAPI spec - do not edit\n\n")
 	g.jsonOut.WriteString("#include <stdlib.h>\n")
 	g.jsonOut.WriteString("#include <string.h>\n")
@@ -688,8 +721,13 @@ func (g *Generator) generateJSONImplementation(headerFile string) {
 	g.jsonOut.WriteString("// Forward declarations\n")
 	for _, s := range g.structs {
 		funcName := g.funcName(s.Name)
-		g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj);\n", funcName, s.StructName))
-		g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj);\n", funcName, s.StructName))
+		if g.useAllocator {
+			g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(%s *alloc, const char *json, %s *obj);\n", funcName, allocType, s.StructName))
+			g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(%s *alloc, char *buf, size_t size, %s *obj);\n", funcName, allocType, s.StructName))
+		} else {
+			g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj);\n", funcName, s.StructName))
+			g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj);\n", funcName, s.StructName))
+		}
 	}
 	g.jsonOut.WriteString("\n")
 
@@ -726,9 +764,36 @@ func (g *Generator) generateEnumFromString(e EnumInfo) {
 }
 
 func (g *Generator) generateJSONHelpers() {
-	g.jsonOut.WriteString(`// ============ JSON Helper Functions ============
+	allocType := g.typeName("Allocator")
 
-static const char *skip_ws(const char *p) {
+	g.jsonOut.WriteString("// ============ JSON Helper Functions ============\n\n")
+
+	// Allocator helper macros/functions if enabled
+	if g.useAllocator {
+		g.jsonOut.WriteString(fmt.Sprintf(`// Allocator helpers - use allocator if provided, otherwise malloc/free
+static void *json_alloc(%s *alloc, size_t size) {
+    if (alloc && alloc->alloc) return alloc->alloc(alloc->ctx, size);
+    return malloc(size);
+}
+
+static void *json_calloc(%s *alloc, size_t count, size_t size) {
+    size_t total = count * size;
+    void *ptr = json_alloc(alloc, total);
+    if (ptr) memset(ptr, 0, total);
+    return ptr;
+}
+
+static void json_free(%s *alloc, void *ptr) {
+    if (ptr == NULL) return;
+    if (alloc && alloc->free) { alloc->free(alloc->ctx, ptr); return; }
+    if (alloc && alloc->alloc) return; // Arena without free - don't call free()
+    free(ptr);
+}
+
+`, allocType, allocType, allocType))
+	}
+
+	g.jsonOut.WriteString(`static const char *skip_ws(const char *p) {
     while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
     return p;
 }
@@ -805,7 +870,48 @@ static const char *find_key(const char *json, const char *key) {
     return NULL;
 }
 
-static char *parse_string(const char *p, const char **endp) {
+`)
+
+	// parse_string with allocator support
+	if g.useAllocator {
+		g.jsonOut.WriteString(fmt.Sprintf(`static char *parse_string(%s *alloc, const char *p, const char **endp) {
+    p = skip_ws(p);
+    if (*p != '"') { *endp = p; return NULL; }
+    p++;
+    const char *start = p;
+    size_t len = 0;
+    while (*p && *p != '"') {
+        if (*p == '\\' && *(p+1)) { p += 2; len++; }
+        else { p++; len++; }
+    }
+    char *str = json_alloc(alloc, len + 1);
+    if (!str) { *endp = p; return NULL; }
+    const char *s = start;
+    char *d = str;
+    while (s < p) {
+        if (*s == '\\' && *(s+1)) {
+            s++;
+            switch (*s) {
+                case 'n': *d++ = '\n'; break;
+                case 't': *d++ = '\t'; break;
+                case 'r': *d++ = '\r'; break;
+                case '"': *d++ = '"'; break;
+                case '\\': *d++ = '\\'; break;
+                default: *d++ = *s; break;
+            }
+            s++;
+        } else {
+            *d++ = *s++;
+        }
+    }
+    *d = '\0';
+    *endp = (*p == '"') ? p + 1 : p;
+    return str;
+}
+
+`, allocType))
+	} else {
+		g.jsonOut.WriteString(`static char *parse_string(const char *p, const char **endp) {
     p = skip_ws(p);
     if (*p != '"') { *endp = p; return NULL; }
     p++;
@@ -840,7 +946,10 @@ static char *parse_string(const char *p, const char **endp) {
     return str;
 }
 
-static int64_t parse_int(const char *p, const char **endp) {
+`)
+	}
+
+	g.jsonOut.WriteString(`static int64_t parse_int(const char *p, const char **endp) {
     p = skip_ws(p);
     char *end;
     int64_t val = strtoll(p, &end, 10);
@@ -924,9 +1033,16 @@ static int write_escaped(char *buf, size_t size, const char *str) {
 
 func (g *Generator) generateStructToJSON(s StructInfo) {
 	funcName := g.funcName(s.Name)
+	allocType := g.typeName("Allocator")
 
 	// Internal write function (returns bytes written)
-	g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj) {\n", funcName, s.StructName))
+	// Note: _write doesn't need allocator since it just calculates/writes to provided buffer
+	if g.useAllocator {
+		g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(%s *alloc, char *buf, size_t size, %s *obj) {\n", funcName, allocType, s.StructName))
+		g.jsonOut.WriteString("    (void)alloc; // unused in write, but kept for consistent signature\n")
+	} else {
+		g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj) {\n", funcName, s.StructName))
+	}
 	g.jsonOut.WriteString("    if (obj == NULL) return snprintf(buf, size, \"null\");\n")
 	g.jsonOut.WriteString("    int len = 0;\n")
 	g.jsonOut.WriteString("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"{\");\n")
@@ -944,7 +1060,11 @@ func (g *Generator) generateStructToJSON(s StructInfo) {
 
 			if f.IsRef {
 				refFuncName := g.funcName(f.RefSchemaName)
-				g.jsonOut.WriteString(fmt.Sprintf("        len += %s_write(buf + len, size > (size_t)len ? size - len : 0, &obj->%s[i]);\n", refFuncName, f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("        len += %s_write(alloc, buf + len, size > (size_t)len ? size - len : 0, &obj->%s[i]);\n", refFuncName, f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("        len += %s_write(buf + len, size > (size_t)len ? size - len : 0, &obj->%s[i]);\n", refFuncName, f.FieldName))
+				}
 			} else if f.IsEnum {
 				enumFuncName := g.funcName(f.EnumSchemaName)
 				g.jsonOut.WriteString(fmt.Sprintf("        len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, %s_to_string(obj->%s[i]));\n", enumFuncName, f.FieldName))
@@ -967,7 +1087,11 @@ func (g *Generator) generateStructToJSON(s StructInfo) {
 		} else if f.IsRef {
 			refFuncName := g.funcName(f.RefSchemaName)
 			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
-			g.jsonOut.WriteString(fmt.Sprintf("    len += %s_write(buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", refFuncName, f.FieldName))
+			if g.useAllocator {
+				g.jsonOut.WriteString(fmt.Sprintf("    len += %s_write(alloc, buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", refFuncName, f.FieldName))
+			} else {
+				g.jsonOut.WriteString(fmt.Sprintf("    len += %s_write(buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", refFuncName, f.FieldName))
+			}
 		} else if f.IsString {
 			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
 			g.jsonOut.WriteString(fmt.Sprintf("    len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", f.FieldName))
@@ -985,20 +1109,35 @@ func (g *Generator) generateStructToJSON(s StructInfo) {
 	g.jsonOut.WriteString("}\n\n")
 
 	// Public function
-	g.jsonOut.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj) {\n", funcName, s.StructName))
-	g.jsonOut.WriteString(fmt.Sprintf("    int len = %s_write(NULL, 0, obj);\n", funcName))
-	g.jsonOut.WriteString("    char *buf = malloc(len + 1);\n")
-	g.jsonOut.WriteString("    if (buf == NULL) return NULL;\n")
-	g.jsonOut.WriteString(fmt.Sprintf("    %s_write(buf, len + 1, obj);\n", funcName))
-	g.jsonOut.WriteString("    return buf;\n")
-	g.jsonOut.WriteString("}\n\n")
+	if g.useAllocator {
+		g.jsonOut.WriteString(fmt.Sprintf("char *%s_to_json(%s *alloc, %s *obj) {\n", funcName, allocType, s.StructName))
+		g.jsonOut.WriteString(fmt.Sprintf("    int len = %s_write(alloc, NULL, 0, obj);\n", funcName))
+		g.jsonOut.WriteString("    char *buf = json_alloc(alloc, len + 1);\n")
+		g.jsonOut.WriteString("    if (buf == NULL) return NULL;\n")
+		g.jsonOut.WriteString(fmt.Sprintf("    %s_write(alloc, buf, len + 1, obj);\n", funcName))
+		g.jsonOut.WriteString("    return buf;\n")
+		g.jsonOut.WriteString("}\n\n")
+	} else {
+		g.jsonOut.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj) {\n", funcName, s.StructName))
+		g.jsonOut.WriteString(fmt.Sprintf("    int len = %s_write(NULL, 0, obj);\n", funcName))
+		g.jsonOut.WriteString("    char *buf = malloc(len + 1);\n")
+		g.jsonOut.WriteString("    if (buf == NULL) return NULL;\n")
+		g.jsonOut.WriteString(fmt.Sprintf("    %s_write(buf, len + 1, obj);\n", funcName))
+		g.jsonOut.WriteString("    return buf;\n")
+		g.jsonOut.WriteString("}\n\n")
+	}
 }
 
 func (g *Generator) generateStructFromJSON(s StructInfo) {
 	funcName := g.funcName(s.Name)
+	allocType := g.typeName("Allocator")
 
 	// Internal parse function
-	g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj) {\n", funcName, s.StructName))
+	if g.useAllocator {
+		g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(%s *alloc, const char *json, %s *obj) {\n", funcName, allocType, s.StructName))
+	} else {
+		g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj) {\n", funcName, s.StructName))
+	}
 	g.jsonOut.WriteString("    if (json == NULL || obj == NULL) return NULL;\n")
 	g.jsonOut.WriteString("    memset(obj, 0, sizeof(*obj));\n")
 	g.jsonOut.WriteString("    const char *p;\n")
@@ -1014,28 +1153,54 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 			g.jsonOut.WriteString("        if (count > 0) {\n")
 
 			if f.IsRef {
-				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, f.RefType))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = json_calloc(alloc, count, sizeof(%s));\n", f.FieldName, f.RefType))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, f.RefType))
+				}
 				refFuncName := g.funcName(f.RefSchemaName)
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
-				g.jsonOut.WriteString(fmt.Sprintf("                %s_parse(elem, &obj->%s[i]);\n", refFuncName, f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("                %s_parse(alloc, elem, &obj->%s[i]);\n", refFuncName, f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("                %s_parse(elem, &obj->%s[i]);\n", refFuncName, f.FieldName))
+				}
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
 			} else if f.IsEnum {
-				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, f.EnumType))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = json_calloc(alloc, count, sizeof(%s));\n", f.FieldName, f.EnumType))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, f.EnumType))
+				}
 				enumFuncName := g.funcName(f.EnumSchemaName)
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
-				g.jsonOut.WriteString("                char *str = parse_string(elem, &elem);\n")
-				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = %s_from_string(str);\n", f.FieldName, enumFuncName))
-				g.jsonOut.WriteString("                free(str);\n")
+				if g.useAllocator {
+					g.jsonOut.WriteString("                char *str = parse_string(alloc, elem, &elem);\n")
+					g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = %s_from_string(str);\n", f.FieldName, enumFuncName))
+					g.jsonOut.WriteString("                json_free(alloc, str);\n")
+				} else {
+					g.jsonOut.WriteString("                char *str = parse_string(elem, &elem);\n")
+					g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = %s_from_string(str);\n", f.FieldName, enumFuncName))
+					g.jsonOut.WriteString("                free(str);\n")
+				}
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
 			} else if f.IsString {
-				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(char*));\n", f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = json_calloc(alloc, count, sizeof(char*));\n", f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(char*));\n", f.FieldName))
+				}
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
-				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = parse_string(elem, &elem);\n", f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = parse_string(alloc, elem, &elem);\n", f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = parse_string(elem, &elem);\n", f.FieldName))
+				}
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
 			} else if f.IsInt {
@@ -1043,28 +1208,44 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 				if f.IsInt32 {
 					ctype = "int32_t"
 				}
-				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, ctype))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = json_calloc(alloc, count, sizeof(%s));\n", f.FieldName, ctype))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, ctype))
+				}
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
 				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = (%s)parse_int(elem, &elem);\n", f.FieldName, ctype))
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
 			} else if f.IsFloat {
-				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(float));\n", f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = json_calloc(alloc, count, sizeof(float));\n", f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(float));\n", f.FieldName))
+				}
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
 				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = (float)parse_double(elem, &elem);\n", f.FieldName))
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
 			} else if f.IsDouble {
-				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(double));\n", f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = json_calloc(alloc, count, sizeof(double));\n", f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(double));\n", f.FieldName))
+				}
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
 				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = parse_double(elem, &elem);\n", f.FieldName))
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
 			} else if f.IsBool {
-				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(bool));\n", f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = json_calloc(alloc, count, sizeof(bool));\n", f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(bool));\n", f.FieldName))
+				}
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
 				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = parse_bool(elem, &elem);\n", f.FieldName))
@@ -1074,15 +1255,30 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 			g.jsonOut.WriteString("        }\n")
 		} else if f.IsEnum {
 			enumFuncName := g.funcName(f.EnumSchemaName)
-			g.jsonOut.WriteString("        char *str = parse_string(p, &p);\n")
-			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = %s_from_string(str);\n", f.FieldName, enumFuncName))
-			g.jsonOut.WriteString("        free(str);\n")
+			if g.useAllocator {
+				g.jsonOut.WriteString("        char *str = parse_string(alloc, p, &p);\n")
+				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = %s_from_string(str);\n", f.FieldName, enumFuncName))
+				g.jsonOut.WriteString("        json_free(alloc, str);\n")
+			} else {
+				g.jsonOut.WriteString("        char *str = parse_string(p, &p);\n")
+				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = %s_from_string(str);\n", f.FieldName, enumFuncName))
+				g.jsonOut.WriteString("        free(str);\n")
+			}
 		} else if f.IsRef {
 			refFuncName := g.funcName(f.RefSchemaName)
-			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = calloc(1, sizeof(%s));\n", f.FieldName, f.RefType))
-			g.jsonOut.WriteString(fmt.Sprintf("        if (obj->%s) %s_parse(p, obj->%s);\n", f.FieldName, refFuncName, f.FieldName))
+			if g.useAllocator {
+				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = json_calloc(alloc, 1, sizeof(%s));\n", f.FieldName, f.RefType))
+				g.jsonOut.WriteString(fmt.Sprintf("        if (obj->%s) %s_parse(alloc, p, obj->%s);\n", f.FieldName, refFuncName, f.FieldName))
+			} else {
+				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = calloc(1, sizeof(%s));\n", f.FieldName, f.RefType))
+				g.jsonOut.WriteString(fmt.Sprintf("        if (obj->%s) %s_parse(p, obj->%s);\n", f.FieldName, refFuncName, f.FieldName))
+			}
 		} else if f.IsString {
-			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = parse_string(p, &p);\n", f.FieldName))
+			if g.useAllocator {
+				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = parse_string(alloc, p, &p);\n", f.FieldName))
+			} else {
+				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = parse_string(p, &p);\n", f.FieldName))
+			}
 		} else if f.IsInt {
 			if f.IsInt32 {
 				g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = (int32_t)parse_int(p, &p);\n", f.FieldName))
@@ -1104,31 +1300,61 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 	g.jsonOut.WriteString("}\n\n")
 
 	// Public function
-	g.jsonOut.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj) {\n", funcName, s.StructName))
-	g.jsonOut.WriteString(fmt.Sprintf("    return %s_parse(json, obj) != NULL ? 0 : -1;\n", funcName))
+	if g.useAllocator {
+		g.jsonOut.WriteString(fmt.Sprintf("int %s_from_json(%s *alloc, const char *json, %s *obj) {\n", funcName, allocType, s.StructName))
+		g.jsonOut.WriteString(fmt.Sprintf("    return %s_parse(alloc, json, obj) != NULL ? 0 : -1;\n", funcName))
+	} else {
+		g.jsonOut.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj) {\n", funcName, s.StructName))
+		g.jsonOut.WriteString(fmt.Sprintf("    return %s_parse(json, obj) != NULL ? 0 : -1;\n", funcName))
+	}
 	g.jsonOut.WriteString("}\n\n")
 }
 
 func (g *Generator) generateStructFree(s StructInfo) {
 	funcName := g.funcName(s.Name)
+	allocType := g.typeName("Allocator")
 
-	g.jsonOut.WriteString(fmt.Sprintf("void %s_free(%s *obj) {\n", funcName, s.StructName))
+	if g.useAllocator {
+		g.jsonOut.WriteString(fmt.Sprintf("void %s_free(%s *alloc, %s *obj) {\n", funcName, allocType, s.StructName))
+	} else {
+		g.jsonOut.WriteString(fmt.Sprintf("void %s_free(%s *obj) {\n", funcName, s.StructName))
+	}
 	g.jsonOut.WriteString("    if (obj == NULL) return;\n")
 
 	for _, f := range s.Fields {
 		if f.IsArray {
 			if f.IsRef {
 				refFuncName := g.funcName(f.RefSchemaName)
-				g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) %s_free(&obj->%s[i]);\n", f.CountField, refFuncName, f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) %s_free(alloc, &obj->%s[i]);\n", f.CountField, refFuncName, f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) %s_free(&obj->%s[i]);\n", f.CountField, refFuncName, f.FieldName))
+				}
 			} else if f.IsString {
-				g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) free(obj->%s[i]);\n", f.CountField, f.FieldName))
+				if g.useAllocator {
+					g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) json_free(alloc, obj->%s[i]);\n", f.CountField, f.FieldName))
+				} else {
+					g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) free(obj->%s[i]);\n", f.CountField, f.FieldName))
+				}
 			}
-			g.jsonOut.WriteString(fmt.Sprintf("    free(obj->%s);\n", f.FieldName))
+			if g.useAllocator {
+				g.jsonOut.WriteString(fmt.Sprintf("    json_free(alloc, obj->%s);\n", f.FieldName))
+			} else {
+				g.jsonOut.WriteString(fmt.Sprintf("    free(obj->%s);\n", f.FieldName))
+			}
 		} else if f.IsRef {
 			refFuncName := g.funcName(f.RefSchemaName)
-			g.jsonOut.WriteString(fmt.Sprintf("    if (obj->%s) { %s_free(obj->%s); free(obj->%s); }\n", f.FieldName, refFuncName, f.FieldName, f.FieldName))
+			if g.useAllocator {
+				g.jsonOut.WriteString(fmt.Sprintf("    if (obj->%s) { %s_free(alloc, obj->%s); json_free(alloc, obj->%s); }\n", f.FieldName, refFuncName, f.FieldName, f.FieldName))
+			} else {
+				g.jsonOut.WriteString(fmt.Sprintf("    if (obj->%s) { %s_free(obj->%s); free(obj->%s); }\n", f.FieldName, refFuncName, f.FieldName, f.FieldName))
+			}
 		} else if f.IsString {
-			g.jsonOut.WriteString(fmt.Sprintf("    free(obj->%s);\n", f.FieldName))
+			if g.useAllocator {
+				g.jsonOut.WriteString(fmt.Sprintf("    json_free(alloc, obj->%s);\n", f.FieldName))
+			} else {
+				g.jsonOut.WriteString(fmt.Sprintf("    free(obj->%s);\n", f.FieldName))
+			}
 		}
 	}
 
