@@ -17,9 +17,9 @@ typedef struct {
 
 // ============ Query Functions ============
 
-// select id, first_name, last_name from competitor where id = ?;
+// select * from competitor where id = ?;
 int get_competitor(sqlite3 *db, sql_int64 id, void (*cb)(Competitor*, void*), void *ctx);
-// select id, first_name, last_name from competitor;
+// select * from competitor;
 int list_competitors(sqlite3 *db, void (*cb)(Competitor*, void*), void *ctx);
 // insert into competitor ( first_name, last_name, email ) values ( ?, ?, ?) returning id, first_name, last_name;
 int create_competitor(sqlite3 *db, CreateCompetitorParams *params, void (*cb)(Competitor*, void*), void *ctx);

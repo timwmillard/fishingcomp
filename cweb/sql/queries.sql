@@ -1,10 +1,10 @@
 -- name: GetCompetitor :one
-select id, first_name, last_name
+select *
 from competitor
 where id = ?;
 
 -- name: ListCompetitors :many
-select id, first_name, last_name
+select *
 from competitor;
 
 -- name: CreateCompetitor :one
