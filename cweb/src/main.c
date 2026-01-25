@@ -33,12 +33,12 @@ void handle_ecewo_log(LogLevel level, const char *file, int line,
 }
 
 void db_open(const char *db_name) {
-    int rc = sqlite3_open(db_name, &sqlctx.db);
+    int rc = sqlite3_open(db_name, &sqldb);
     if (rc != SQLITE_OK) {
         slog_error("Database open failed",
-                slog_string("error",  sqlite3_errmsg(sqlctx.db))
+                slog_string("error",  sqlite3_errmsg(sqldb))
         );
-        sqlite3_close(sqlctx.db);
+        sqlite3_close(sqldb);
         exit(1);
     }
     slog_info("Database opened",
@@ -47,10 +47,10 @@ void db_open(const char *db_name) {
 
     // Execute embedded schema
     char *err_msg = NULL;
-    rc = sqlite3_exec(sqlctx.db, (char*)sql_schema_sql_data, NULL, NULL, &err_msg);
+    rc = sqlite3_exec(sqldb, (char*)sql_schema_sql_data, NULL, NULL, &err_msg);
     if (rc != SQLITE_OK) {
         slog_error("Database schema execution failed",
-                slog_string("error",  sqlite3_errmsg(sqlctx.db))
+                slog_string("error",  sqlite3_errmsg(sqldb))
         );
         sqlite3_free(err_msg);
         exit(1);

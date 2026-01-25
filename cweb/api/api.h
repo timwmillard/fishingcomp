@@ -7,9 +7,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-// Forward declarations
-typedef struct Req Req;
-typedef struct Res Res;
+#include "ecewo.h"
 
 // ============ Allocator ============
 
@@ -44,7 +42,7 @@ char *api_competitor_to_json(api_Allocator *alloc, api_Competitor *obj);
 int api_competitor_from_json(api_Allocator *alloc, const char *json, api_Competitor *obj);
 void api_competitor_free(api_Allocator *alloc, api_Competitor *obj);
 
-// ============ Handlers ============
+// ============ Handlers (ecewo) ============
 
 // GET /competitors - List all competitors
 void api_get_competitors(Req *req, Res *res);
@@ -61,5 +59,15 @@ void api_update_competitor(Req *req, Res *res);
 // DELETE /competitors/{id} - Delete a competitor
 void api_delete_competitor(Req *req, Res *res);
 
+
+// ============ Routes (ecewo) ============
+
+static inline void api_routes() {
+    get("/competitors", api_get_competitors);
+    post("/competitors", api_create_competitor);
+    get("/competitors/:id", api_get_competitor);
+    put("/competitors/:id", api_update_competitor);
+    del("/competitors/:id", api_delete_competitor);
+}
 
 #endif // API_H

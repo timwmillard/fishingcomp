@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
 project(app VERSION 1.0.0 LANGUAGES C)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
@@ -66,7 +65,8 @@ add_custom_target(generate_schema DEPENDS ${CMAKE_SOURCE_DIR}/src/schema.h)
 
 add_executable(${PROJECT_NAME}
   src/main.c
-  src/queries.c
+  api/api_json.c
+  sql/queries.c
   vendor/sqlite3.c
   vendor/unit.c
 )

@@ -31,6 +31,7 @@ type Config struct {
 	TypePrefix   string `yaml:"type-prefix"`
 	FuncPrefix   string `yaml:"func-prefix"`
 	UseAllocator bool   `yaml:"use-allocator"`
+	Framework    string `yaml:"framework"` // "none" (default) or "ecewo"
 }
 
 // FieldInfo stores information about a struct field for JSON generation
@@ -79,6 +80,7 @@ type Generator struct {
 	typePrefix   string       // Prefix for type names (structs, enums)
 	funcPrefix   string       // Prefix for function names
 	useAllocator bool         // Add allocator parameter to JSON functions
+	framework    string       // "none" or "ecewo"
 	structs      []StructInfo // Collected struct info for JSON generation
 	enums        []EnumInfo   // Collected enum info for JSON generation
 }
@@ -104,6 +106,7 @@ func main() {
 		FieldStyle:  "snake",
 		FuncStyle:   "snake",
 		GenJSON:     false,
+		Framework:   "none",
 	}
 
 	// First pass: just look for -config flag
@@ -154,6 +157,9 @@ func main() {
 		if fileCfg.UseAllocator {
 			cfg.UseAllocator = true
 		}
+		if fileCfg.Framework != "" {
+			cfg.Framework = fileCfg.Framework
+		}
 	}
 
 	// Define flags with config values as defaults
@@ -167,6 +173,7 @@ func main() {
 	typePrefix := flag.String("type-prefix", cfg.TypePrefix, "Prefix for type names (structs, enums)")
 	funcPrefix := flag.String("func-prefix", cfg.FuncPrefix, "Prefix for function names")
 	useAllocator := flag.Bool("use-allocator", cfg.UseAllocator, "Add allocator parameter to JSON functions")
+	framework := flag.String("framework", cfg.Framework, "Web framework: none (default) or ecewo")
 	flag.Parse()
 
 	// Suppress unused warning
@@ -193,6 +200,7 @@ func main() {
 		typePrefix:   *typePrefix,
 		funcPrefix:   *funcPrefix,
 		useAllocator: *useAllocator,
+		framework:    *framework,
 	}
 
 	gen.generate(*output)
@@ -232,10 +240,10 @@ func (g *Generator) generate(outputFile string) {
 	g.out.WriteString("#include <stdbool.h>\n")
 	g.out.WriteString("#include <stddef.h>\n\n")
 
-	// Forward declarations for Req/Res
-	g.out.WriteString("// Forward declarations\n")
-	g.out.WriteString("typedef struct Req Req;\n")
-	g.out.WriteString("typedef struct Res Res;\n\n")
+	// Framework includes
+	if g.framework == "ecewo" {
+		g.out.WriteString("#include \"ecewo.h\"\n\n")
+	}
 
 	// Generate Allocator typedef if enabled
 	if g.useAllocator && g.genJSON {
@@ -260,9 +268,14 @@ func (g *Generator) generate(outputFile string) {
 		g.generateJSONDeclarations()
 	}
 
-	// Generate handler signatures from paths
-	g.out.WriteString("// ============ Handlers ============\n\n")
-	g.generateHandlers()
+	// Generate handler signatures from paths (framework-specific)
+	if g.framework == "ecewo" {
+		g.out.WriteString("// ============ Handlers (ecewo) ============\n\n")
+		g.generateHandlers()
+
+		g.out.WriteString("// ============ Routes (ecewo) ============\n\n")
+		g.generateRoutes()
+	}
 
 	// Close header guard
 	g.out.WriteString(fmt.Sprintf("#endif // %s\n", guardName))
@@ -1408,6 +1421,71 @@ func (g *Generator) generateHandler(method, path string, op *openapi3.Operation)
 
 	funcName := g.operationToFuncName(method, path, op)
 	g.out.WriteString(fmt.Sprintf("void %s(Req *req, Res *res);\n\n", funcName))
+}
+
+func (g *Generator) generateRoutes() {
+	if g.doc.Paths == nil {
+		return
+	}
+
+	routesFuncName := g.funcName("routes")
+	g.out.WriteString(fmt.Sprintf("static inline void %s() {\n", routesFuncName))
+
+	pathList := make([]string, 0)
+	for path := range g.doc.Paths.Map() {
+		pathList = append(pathList, path)
+	}
+	sort.Strings(pathList)
+
+	for _, path := range pathList {
+		pathItem := g.doc.Paths.Value(path)
+		if pathItem == nil {
+			continue
+		}
+
+		// Convert {param} to :param for ecewo
+		ecePath := g.convertPathToEcewo(path)
+
+		operations := []struct {
+			method   string
+			ecewoFn  string
+			op       *openapi3.Operation
+		}{
+			{"get", "get", pathItem.Get},
+			{"post", "post", pathItem.Post},
+			{"put", "put", pathItem.Put},
+			{"delete", "del", pathItem.Delete},
+			{"patch", "patch", pathItem.Patch},
+		}
+
+		for _, item := range operations {
+			if item.op == nil {
+				continue
+			}
+			funcName := g.operationToFuncName(item.method, path, item.op)
+			g.out.WriteString(fmt.Sprintf("    %s(\"%s\", %s);\n", item.ecewoFn, ecePath, funcName))
+		}
+	}
+
+	g.out.WriteString("}\n\n")
+}
+
+// convertPathToEcewo converts OpenAPI path params {id} to ecewo format :id
+func (g *Generator) convertPathToEcewo(path string) string {
+	result := path
+	for {
+		start := strings.Index(result, "{")
+		if start == -1 {
+			break
+		}
+		end := strings.Index(result, "}")
+		if end == -1 {
+			break
+		}
+		paramName := result[start+1 : end]
+		result = result[:start] + ":" + paramName + result[end+1:]
+	}
+	return result
 }
 
 func (g *Generator) operationToFuncName(method, path string, op *openapi3.Operation) string {

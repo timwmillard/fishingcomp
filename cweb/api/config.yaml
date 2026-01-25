@@ -8,3 +8,4 @@ gen-json: true
 type-prefix: api_
 func-prefix: api_
 use-allocator: true
+framework: ecewo
