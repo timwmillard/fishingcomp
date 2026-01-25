@@ -731,8 +731,7 @@ func (g *Generator) generateOneImpl(q Query, funcName, resultType, sqlStr string
 func (g *Generator) generateManyImpl(q Query, funcName, resultType, sqlStr string) {
 	// Function signature
 	if len(q.Params) == 0 {
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s **result, size_t *count) {\n",
-			funcName, resultType))
+		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s **result, size_t *count) {\n", funcName, resultType))
 	} else if len(q.Params) == 1 {
 		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s %s, %s **result, size_t *count) {\n",
 			funcName, q.Params[0].Type, g.applyStyle(q.Params[0].Name, g.fieldStyle), resultType))
