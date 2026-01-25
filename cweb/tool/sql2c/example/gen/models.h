@@ -1,3 +1,4 @@
+// Generated from SQL - do not edit
 
 #ifndef SQL_MODEL_H
 #define SQL_MODEL_H
@@ -65,7 +66,7 @@ typedef struct {
     bool null;
 } sql_nulltext;
 
-// Table structs
+// ============ Table Structs ============
 
 typedef struct {
     sql_int64 Id;
@@ -75,18 +76,18 @@ typedef struct {
 
 typedef struct {
     sql_int64 Id;
-    sql_text FirstName;
-    sql_text LastName;
-    sql_text Email;
-    sql_nullint64 BoatId;
-} Competitor;
-
-typedef struct {
-    sql_int64 Id;
     sql_int64 CompetitorId;
     sql_text Species;
     sql_int64 WeightGrams;
     sql_text CaughtAt;
 } Catch;
 
-#endif
+typedef struct {
+    sql_int64 Id;
+    sql_text FirstName;
+    sql_text LastName;
+    sql_text Email;
+    sql_nullint64 BoatId;
+} Competitor;
+
+#endif // SQL_MODEL_H

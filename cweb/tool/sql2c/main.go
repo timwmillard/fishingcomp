@@ -350,6 +350,30 @@ func (g *Generator) parseSelectStatement(q *Query, s *sql.SelectStatement) {
 		if table, ok := g.tables[q.Table]; ok {
 			q.Columns = table.Columns
 		}
+	} else {
+		// Handle individual column selections
+		table := g.tables[q.Table]
+		if table != nil {
+			for _, col := range s.Columns {
+				// Get column name from expression
+				var colName string
+				if col.Expr != nil {
+					if ident, ok := col.Expr.(*sql.Ident); ok {
+						colName = ident.Name
+					}
+				}
+				if colName == "" {
+					continue
+				}
+				// Look up column type from table definition
+				for _, tableCol := range table.Columns {
+					if strings.EqualFold(tableCol.Name, colName) {
+						q.Columns = append(q.Columns, tableCol)
+						break
+					}
+				}
+			}
+		}
 	}
 
 	// Extract WHERE clause parameters
@@ -385,14 +409,7 @@ func (g *Generator) parseInsertStatement(q *Query, s *sql.InsertStatement) {
 
 	// Check for RETURNING clause
 	if s.ReturningClause != nil {
-		for _, rc := range s.ReturningClause.Columns {
-			if rc.Star.IsValid() {
-				if table, ok := g.tables[q.Table]; ok {
-					q.Columns = table.Columns
-				}
-				break
-			}
-		}
+		g.extractReturningColumns(q, s.ReturningClause.Columns)
 	}
 }
 
@@ -433,14 +450,7 @@ func (g *Generator) parseUpdateStatement(q *Query, s *sql.UpdateStatement) {
 
 	// Check for RETURNING clause
 	if s.ReturningClause != nil {
-		for _, rc := range s.ReturningClause.Columns {
-			if rc.Star.IsValid() {
-				if table, ok := g.tables[q.Table]; ok {
-					q.Columns = table.Columns
-				}
-				break
-			}
-		}
+		g.extractReturningColumns(q, s.ReturningClause.Columns)
 	}
 }
 
@@ -497,6 +507,33 @@ func (g *Generator) extractExprParams(q *Query, expr sql.Expr) {
 			}
 		}
 	})
+}
+
+// extractReturningColumns extracts columns from a RETURNING clause
+func (g *Generator) extractReturningColumns(q *Query, columns []*sql.ResultColumn) {
+	table := g.tables[q.Table]
+	if table == nil {
+		return
+	}
+
+	for _, rc := range columns {
+		// Check if it's a star (RETURNING *)
+		if rc.Star.IsValid() {
+			q.Columns = table.Columns
+			return
+		}
+		// Handle individual column
+		if rc.Expr != nil {
+			if ident, ok := rc.Expr.(*sql.Ident); ok {
+				for _, tableCol := range table.Columns {
+					if strings.EqualFold(tableCol.Name, ident.Name) {
+						q.Columns = append(q.Columns, tableCol)
+						break
+					}
+				}
+			}
+		}
+	}
 }
 
 // walkExpr walks an expression tree calling fn for each node
