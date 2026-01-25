@@ -718,7 +718,7 @@ func (g *Generator) generateHeader(outputFile string) {
 func (g *Generator) generateParamStruct(q Query) {
 	structName := g.typeName(q.Name + "Params")
 
-	g.out.WriteString(fmt.Sprintf("typedef struct {\n"))
+	g.out.WriteString("typedef struct {\n")
 	for _, p := range q.Params {
 		fieldName := g.applyStyle(p.Name, g.fieldStyle)
 		g.out.WriteString(fmt.Sprintf("    %s %s;\n", p.Type, fieldName))
