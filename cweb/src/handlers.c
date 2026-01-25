@@ -242,8 +242,10 @@ void log_handle(Req *req, Res *res) {
 typedef struct {
     Req *req;
     Res *res;
+    api_Allocator alloc;
     int status;
     char *body;
+    char *log_message;
 } context;
 
 static void response(context *ctx, int status, char *body) {
@@ -256,30 +258,84 @@ void work_done_send_json(void *cx) {
     send_json(ctx->res, ctx->status, ctx->body);
 }
 
-void get_competitor_work(void *cx) {
+void competitor_to_json(Competitor *comp, void *data) {
+    context *ctx = data;
+    if (ctx->log_message)
+        slog_debug(ctx->log_message,
+                slog_int("id", comp->id),
+                slog_string("first_name", (char*)comp->first_name.data),
+                slog_string("last_name", (char*)comp->last_name.data)
+        );
+
+    ctx->body = api_competitor_to_json(&ctx->alloc, &(api_Competitor){
+            .id = comp->id,
+            .first_name = (char*)comp->first_name.data,
+            .last_name = (char*)comp->last_name.data,
+        });
+    ctx->status = OK;
 }
+
+// GET /competitors - List all competitors
 void api_get_competitors(Req *req, Res *res) {
-    context *ctx = arena_alloc(req->arena, sizeof(context));
-    ctx->req = req;
-    ctx->res = res;
-    spawn(ctx, get_competitor_work, work_done_send_json);
+    slog_debug("Get Competitors Not Implmented");
+    reply(res, NOT_IMPLEMENTED, NULL, 0);
 }
 
 // POST /competitors - Create a competitor
 void api_create_competitor(Req *req, Res *res) {
+    slog_debug("Create Competitors Not Implmented");
+    reply(res, NOT_IMPLEMENTED, NULL, 0);
+}
+
+void get_competitor_work(void *cx) {
+    context *ctx = cx;
+
+    const char *id_str = get_param(ctx->req, "id");
+    int id = atoi(id_str);
+
+    slog_debug("Competitor getting",
+            slog_int("id", id)
+    );
+
+    Competitor comp;
+    ctx->log_message = "Get Competitor";
+    int rc = get_competitor(sqldb, id, competitor_to_json, ctx);
+    if (rc != SQLITE_OK) {
+        slog_error("Competitor not found",
+                slog_int("id", id)
+        );
+        response(ctx, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
+        return;
+    }
+
+    slog_info("Competitor get",
+            slog_int("id", id)
+    );
 }
 
 // GET /competitors/{id} - Get a competitor by ID
 void api_get_competitor(Req *req, Res *res) {
+    context *ctx = arena_alloc(req->arena, sizeof(context));
+    memset(ctx, 0, sizeof(context));
+    ctx->req = req;
+    ctx->res = res;
+    ctx->alloc = api_arena_allocator(req->arena);
+    spawn(ctx, get_competitor_work, work_done_send_json);
 }
 
 // PUT /competitors/{id} - Update a competitor
 void api_update_competitor(Req *req, Res *res) {
+    slog_debug("Update Competitors Not Implmented");
+    reply(res, NOT_IMPLEMENTED, NULL, 0);
 }
 
 // DELETE /competitors/{id} - Delete a competitor
 void api_delete_competitor(Req *req, Res *res) {
+    slog_debug("Delete Competitors Not Implmented");
+    reply(res, NOT_IMPLEMENTED, NULL, 0);
 }
+
+
 
 void routes() {
     get("/health", health);
