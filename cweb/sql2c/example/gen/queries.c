@@ -4,23 +4,6 @@
 #include <string.h>
 #include "queries.h"
 
-// Helper to allocate and copy text
-static sql_text dup_text(sql_context *ctx, const unsigned char *src) {
-    sql_text t = {0};
-    if (src == NULL) return t;
-    size_t len = strlen((const char *)src);
-    if (ctx->alloc) {
-        t.data = ctx->alloc(ctx, len + 1);
-    } else {
-        t.data = malloc(len + 1);
-    }
-    if (t.data) {
-        memcpy(t.data, src, len + 1);
-        t.len = len;
-    }
-    return t;
-}
-
 // GetCompetitor :one
 int get_competitor(sqlite3 *db, sql_int64 Id, void (*cb)(Competitor*, void*), void *ctx) {
     const char *sql = "select *\n"
@@ -34,7 +17,7 @@ int get_competitor(sqlite3 *db, sql_int64 Id, void (*cb)(Competitor*, void*), vo
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
-        Competitor result;
+        Competitor result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.FirstName.data = (sql_byte*)sqlite3_column_text(stmt, 1);
         result.FirstName.len = sqlite3_column_bytes(stmt, 1);
@@ -56,11 +39,11 @@ int get_competitor(sqlite3 *db, sql_int64 Id, void (*cb)(Competitor*, void*), vo
 }
 
 // ListCompetitors :many
-int list_competitors(sql_context *ctx, Competitor **result, size_t *count) {
+int list_competitors(sqlite3 *db, void (*cb)(Competitor*, void*), void *ctx) {
     const char *sql = "select *\n"
                       "from competitor;\n";
     sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
 
     size_t capacity = 16;
@@ -69,14 +52,7 @@ int list_competitors(sql_context *ctx, Competitor **result, size_t *count) {
     if (arr == NULL) { sqlite3_finalize(stmt); return SQLITE_NOMEM; }
 
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-        if (n >= capacity) {
-            capacity *= 2;
-            Competitor *tmp = realloc(arr, capacity * sizeof(Competitor));
-            if (tmp == NULL) { free(arr); sqlite3_finalize(stmt); return SQLITE_NOMEM; }
-            arr = tmp;
-        }
-        Competitor *result = &arr[n++];
-        memset(result, 0, sizeof(*result));
+        Competitor result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.FirstName.data = (sql_byte*)sqlite3_column_text(stmt, 1);
         result.FirstName.len = sqlite3_column_bytes(stmt, 1);
@@ -88,12 +64,11 @@ int list_competitors(sql_context *ctx, Competitor **result, size_t *count) {
             result.BoatId.value = sqlite3_column_int64(stmt, 4);
             result.BoatId.null = false;
         } else { result.BoatId.null = true; }
+        cb(&result, ctx);
     }
 
     sqlite3_finalize(stmt);
     if (rc == SQLITE_DONE) rc = SQLITE_OK;
-    *result = arr;
-    *count = n;
     return rc;
 }
 
@@ -115,7 +90,7 @@ int create_competitor(sqlite3 *db, CreateCompetitorParams *params, void (*cb)(Co
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
-        Competitor result;
+        Competitor result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.FirstName.data = (sql_byte*)sqlite3_column_text(stmt, 1);
         result.FirstName.len = sqlite3_column_bytes(stmt, 1);
@@ -151,7 +126,7 @@ int update_competitor_email(sqlite3 *db, UpdateCompetitorEmailParams *params, vo
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
-        Competitor result;
+        Competitor result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.FirstName.data = (sql_byte*)sqlite3_column_text(stmt, 1);
         result.FirstName.len = sqlite3_column_bytes(stmt, 1);
@@ -173,11 +148,11 @@ int update_competitor_email(sqlite3 *db, UpdateCompetitorEmailParams *params, vo
 }
 
 // DeleteCompetitor :exec
-int delete_competitor(sql_context *ctx, sql_int64 Id) {
+int delete_competitor(sqlite3 *db, sql_int64 Id) {
     const char *sql = "delete from competitor\n"
                       "where id = ?;\n";
     sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
 
     sqlite3_bind_int64(stmt, 1, Id);
@@ -200,7 +175,7 @@ int get_boat(sqlite3 *db, sql_int64 Id, void (*cb)(Boat*, void*), void *ctx) {
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
-        Boat result;
+        Boat result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.Name.data = (sql_byte*)sqlite3_column_text(stmt, 1);
         result.Name.len = sqlite3_column_bytes(stmt, 1);
@@ -216,11 +191,11 @@ int get_boat(sqlite3 *db, sql_int64 Id, void (*cb)(Boat*, void*), void *ctx) {
 }
 
 // ListBoats :many
-int list_boats(sql_context *ctx, Boat **result, size_t *count) {
+int list_boats(sqlite3 *db, void (*cb)(Boat*, void*), void *ctx) {
     const char *sql = "select *\n"
                       "from boat;\n";
     sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
 
     size_t capacity = 16;
@@ -229,25 +204,17 @@ int list_boats(sql_context *ctx, Boat **result, size_t *count) {
     if (arr == NULL) { sqlite3_finalize(stmt); return SQLITE_NOMEM; }
 
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-        if (n >= capacity) {
-            capacity *= 2;
-            Boat *tmp = realloc(arr, capacity * sizeof(Boat));
-            if (tmp == NULL) { free(arr); sqlite3_finalize(stmt); return SQLITE_NOMEM; }
-            arr = tmp;
-        }
-        Boat *result = &arr[n++];
-        memset(result, 0, sizeof(*result));
+        Boat result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.Name.data = (sql_byte*)sqlite3_column_text(stmt, 1);
         result.Name.len = sqlite3_column_bytes(stmt, 1);
         result.Registration.data = (sql_byte*)sqlite3_column_text(stmt, 2);
         result.Registration.len = sqlite3_column_bytes(stmt, 2);
+        cb(&result, ctx);
     }
 
     sqlite3_finalize(stmt);
     if (rc == SQLITE_DONE) rc = SQLITE_OK;
-    *result = arr;
-    *count = n;
     return rc;
 }
 
@@ -265,7 +232,7 @@ int create_boat(sqlite3 *db, CreateBoatParams *params, void (*cb)(Boat*, void*),
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
-        Boat result;
+        Boat result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.Name.data = (sql_byte*)sqlite3_column_text(stmt, 1);
         result.Name.len = sqlite3_column_bytes(stmt, 1);
@@ -293,7 +260,7 @@ int get_catch(sqlite3 *db, sql_int64 Id, void (*cb)(Catch*, void*), void *ctx) {
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
-        Catch result;
+        Catch result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.CompetitorId = sqlite3_column_int64(stmt, 1);
         result.Species.data = (sql_byte*)sqlite3_column_text(stmt, 2);
@@ -311,12 +278,12 @@ int get_catch(sqlite3 *db, sql_int64 Id, void (*cb)(Catch*, void*), void *ctx) {
 }
 
 // ListCatchesByCompetitor :many
-int list_catches_by_competitor(sql_context *ctx, sql_int64 CompetitorId, Catch **result, size_t *count) {
+int list_catches_by_competitor(sqlite3 *db, sql_int64 CompetitorId, void (*cb)(Catch*, void*), void *ctx) {
     const char *sql = "select *\n"
                       "from catch\n"
                       "where competitor_id = ?;\n";
     sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
 
     sqlite3_bind_int64(stmt, 1, CompetitorId);
@@ -327,14 +294,7 @@ int list_catches_by_competitor(sql_context *ctx, sql_int64 CompetitorId, Catch *
     if (arr == NULL) { sqlite3_finalize(stmt); return SQLITE_NOMEM; }
 
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-        if (n >= capacity) {
-            capacity *= 2;
-            Catch *tmp = realloc(arr, capacity * sizeof(Catch));
-            if (tmp == NULL) { free(arr); sqlite3_finalize(stmt); return SQLITE_NOMEM; }
-            arr = tmp;
-        }
-        Catch *result = &arr[n++];
-        memset(result, 0, sizeof(*result));
+        Catch result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.CompetitorId = sqlite3_column_int64(stmt, 1);
         result.Species.data = (sql_byte*)sqlite3_column_text(stmt, 2);
@@ -342,12 +302,11 @@ int list_catches_by_competitor(sql_context *ctx, sql_int64 CompetitorId, Catch *
         result.WeightGrams = sqlite3_column_int64(stmt, 3);
         result.CaughtAt.data = (sql_byte*)sqlite3_column_text(stmt, 4);
         result.CaughtAt.len = sqlite3_column_bytes(stmt, 4);
+        cb(&result, ctx);
     }
 
     sqlite3_finalize(stmt);
     if (rc == SQLITE_DONE) rc = SQLITE_OK;
-    *result = arr;
-    *count = n;
     return rc;
 }
 
@@ -367,7 +326,7 @@ int create_catch(sqlite3 *db, CreateCatchParams *params, void (*cb)(Catch*, void
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
-        Catch result;
+        Catch result = {0};
         result.Id = sqlite3_column_int64(stmt, 0);
         result.CompetitorId = sqlite3_column_int64(stmt, 1);
         result.Species.data = (sql_byte*)sqlite3_column_text(stmt, 2);

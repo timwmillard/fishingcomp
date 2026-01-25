@@ -557,6 +557,7 @@ func (g *Generator) generateHeader(outputFile string) {
 	g.out.WriteString("// Generated from SQL - do not edit\n\n")
 	g.out.WriteString(fmt.Sprintf("#ifndef %s\n", guardName))
 	g.out.WriteString(fmt.Sprintf("#define %s\n\n", guardName))
+	g.out.WriteString("#include \"sqlite3.h\"\n\n")
 	g.out.WriteString("#include \"models.h\"\n\n")
 
 	// Generate param structs for queries with multiple params
@@ -573,6 +574,7 @@ func (g *Generator) generateHeader(outputFile string) {
 		g.generateFunctionDecl(q)
 	}
 
+	g.out.WriteString("\n")
 	g.out.WriteString(fmt.Sprintf("#endif // %s\n", guardName))
 }
 
@@ -612,27 +614,27 @@ func (g *Generator) generateFunctionDecl(q Query) {
 		}
 
 	case "many":
+		// Function signature
 		if len(q.Params) == 0 {
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s **result, size_t *count);\n\n",
-				funcName, resultType))
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db, void (*cb)(%s*, void*), void *ctx);\n", funcName, resultType))
 		} else if len(q.Params) == 1 {
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s %s, %s **result, size_t *count);\n\n",
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s %s, void (*cb)(%s*, void*), void *ctx);\n",
 				funcName, q.Params[0].Type, g.applyStyle(q.Params[0].Name, g.fieldStyle), resultType))
 		} else {
 			paramsType := g.typeName(q.Name + "Params")
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *params, %s **result, size_t *count);\n\n",
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s *params, void (*cb)(%s*, void*), void *ctx);\n",
 				funcName, paramsType, resultType))
 		}
 
 	case "exec":
 		if len(q.Params) == 0 {
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx);\n\n", funcName))
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db);\n\n", funcName))
 		} else if len(q.Params) == 1 {
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s %s);\n\n",
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s %s);\n\n",
 				funcName, q.Params[0].Type, g.applyStyle(q.Params[0].Name, g.fieldStyle)))
 		} else {
 			paramsType := g.typeName(q.Name + "Params")
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *params);\n\n", funcName, paramsType))
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s *params);\n\n", funcName, paramsType))
 		}
 	}
 }
@@ -643,26 +645,6 @@ func (g *Generator) generateImplementation(headerFile string) {
 	g.implOut.WriteString("#include <stdlib.h>\n")
 	g.implOut.WriteString("#include <string.h>\n")
 	g.implOut.WriteString(fmt.Sprintf("#include \"%s\"\n\n", filepath.Base(headerFile)))
-
-	// Helper to duplicate text
-	g.implOut.WriteString(`// Helper to allocate and copy text
-static sql_text dup_text(sql_context *ctx, const unsigned char *src) {
-    sql_text t = {0};
-    if (src == NULL) return t;
-    size_t len = strlen((const char *)src);
-    if (ctx->alloc) {
-        t.data = ctx->alloc(ctx, len + 1);
-    } else {
-        t.data = malloc(len + 1);
-    }
-    if (t.data) {
-        memcpy(t.data, src, len + 1);
-        t.len = len;
-    }
-    return t;
-}
-
-`)
 
 	for _, q := range g.queries {
 		g.generateFunctionImpl(q)
@@ -713,7 +695,7 @@ func (g *Generator) generateOneImpl(q Query, funcName, resultType, sqlStr string
 
 	g.implOut.WriteString("    rc = sqlite3_step(stmt);\n")
 	g.implOut.WriteString("    if (rc == SQLITE_ROW) {\n")
-	g.implOut.WriteString(fmt.Sprintf("        %s result;\n", resultType))
+	g.implOut.WriteString(fmt.Sprintf("        %s result = {0};\n", resultType))
 
 	// Extract columns
 	g.generateExtractColumns(q.Columns)
@@ -731,19 +713,19 @@ func (g *Generator) generateOneImpl(q Query, funcName, resultType, sqlStr string
 func (g *Generator) generateManyImpl(q Query, funcName, resultType, sqlStr string) {
 	// Function signature
 	if len(q.Params) == 0 {
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s **result, size_t *count) {\n", funcName, resultType))
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db, void (*cb)(%s*, void*), void *ctx) {\n", funcName, resultType))
 	} else if len(q.Params) == 1 {
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s %s, %s **result, size_t *count) {\n",
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s %s, void (*cb)(%s*, void*), void *ctx) {\n",
 			funcName, q.Params[0].Type, g.applyStyle(q.Params[0].Name, g.fieldStyle), resultType))
 	} else {
 		paramsType := g.typeName(q.Name + "Params")
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *params, %s **result, size_t *count) {\n",
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s *params, void (*cb)(%s*, void*), void *ctx) {\n",
 			funcName, paramsType, resultType))
 	}
 
 	g.implOut.WriteString(fmt.Sprintf("    const char *sql = %s;\n", sqlStr))
 	g.implOut.WriteString("    sqlite3_stmt *stmt;\n")
-	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);\n")
+	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);\n")
 	g.implOut.WriteString("    if (rc != SQLITE_OK) return rc;\n\n")
 
 	// Bind parameters
@@ -755,24 +737,16 @@ func (g *Generator) generateManyImpl(q Query, funcName, resultType, sqlStr strin
 	g.implOut.WriteString("    if (arr == NULL) { sqlite3_finalize(stmt); return SQLITE_NOMEM; }\n\n")
 
 	g.implOut.WriteString("    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {\n")
-	g.implOut.WriteString("        if (n >= capacity) {\n")
-	g.implOut.WriteString("            capacity *= 2;\n")
-	g.implOut.WriteString(fmt.Sprintf("            %s *tmp = realloc(arr, capacity * sizeof(%s));\n", resultType, resultType))
-	g.implOut.WriteString("            if (tmp == NULL) { free(arr); sqlite3_finalize(stmt); return SQLITE_NOMEM; }\n")
-	g.implOut.WriteString("            arr = tmp;\n")
-	g.implOut.WriteString("        }\n")
-	g.implOut.WriteString(fmt.Sprintf("        %s *result = &arr[n++];\n", resultType))
-	g.implOut.WriteString("        memset(result, 0, sizeof(*result));\n")
+	g.implOut.WriteString(fmt.Sprintf("        %s result = {0};\n", resultType))
 
 	// Extract columns
 	g.generateExtractColumns(q.Columns)
 
+	g.implOut.WriteString("        cb(&result, ctx);\n")
 	g.implOut.WriteString("    }\n\n")
 
 	g.implOut.WriteString("    sqlite3_finalize(stmt);\n")
 	g.implOut.WriteString("    if (rc == SQLITE_DONE) rc = SQLITE_OK;\n")
-	g.implOut.WriteString("    *result = arr;\n")
-	g.implOut.WriteString("    *count = n;\n")
 	g.implOut.WriteString("    return rc;\n")
 	g.implOut.WriteString("}\n\n")
 }
@@ -780,18 +754,18 @@ func (g *Generator) generateManyImpl(q Query, funcName, resultType, sqlStr strin
 func (g *Generator) generateExecImpl(q Query, funcName, sqlStr string) {
 	// Function signature
 	if len(q.Params) == 0 {
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx) {\n", funcName))
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db) {\n", funcName))
 	} else if len(q.Params) == 1 {
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s %s) {\n",
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s %s) {\n",
 			funcName, q.Params[0].Type, g.applyStyle(q.Params[0].Name, g.fieldStyle)))
 	} else {
 		paramsType := g.typeName(q.Name + "Params")
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *params) {\n", funcName, paramsType))
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s *params) {\n", funcName, paramsType))
 	}
 
 	g.implOut.WriteString(fmt.Sprintf("    const char *sql = %s;\n", sqlStr))
 	g.implOut.WriteString("    sqlite3_stmt *stmt;\n")
-	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);\n")
+	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);\n")
 	g.implOut.WriteString("    if (rc != SQLITE_OK) return rc;\n\n")
 
 	// Bind parameters
