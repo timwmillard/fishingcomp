@@ -22,7 +22,9 @@ static sql_text dup_text(sql_context *ctx, const unsigned char *src) {
 }
 
 int get_competitor(sql_context *ctx, sql_int64 Id, Competitor *result) {
-    const char *sql = "select * from competitor where id = ?;";
+    const char *sql = "select *\n"
+                      "from competitor\n"
+                      "where id = ?;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -49,7 +51,8 @@ int get_competitor(sql_context *ctx, sql_int64 Id, Competitor *result) {
 }
 
 int list_competitors(sql_context *ctx, Competitor **result, size_t *count) {
-    const char *sql = "select * from competitor;";
+    const char *sql = "select *\n"
+                      "from competitor;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -86,7 +89,12 @@ int list_competitors(sql_context *ctx, Competitor **result, size_t *count) {
 }
 
 int create_competitor(sql_context *ctx, CreateCompetitorParams *params, Competitor *result) {
-    const char *sql = "insert into competitor (     first_name,     last_name,     email ) values (?, ?, ?) returning *;";
+    const char *sql = "insert into competitor (\n"
+                      "    first_name,\n"
+                      "    last_name,\n"
+                      "    email\n"
+                      ") values (?, ?, ?)\n"
+                      "returning *;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -115,7 +123,10 @@ int create_competitor(sql_context *ctx, CreateCompetitorParams *params, Competit
 }
 
 int update_competitor_email(sql_context *ctx, UpdateCompetitorEmailParams *params, Competitor *result) {
-    const char *sql = "update competitor set email = ? where id = ? returning *;";
+    const char *sql = "update competitor\n"
+                      "set email = ?\n"
+                      "where id = ?\n"
+                      "returning *;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -143,7 +154,8 @@ int update_competitor_email(sql_context *ctx, UpdateCompetitorEmailParams *param
 }
 
 int delete_competitor(sql_context *ctx, sql_int64 Id) {
-    const char *sql = "delete from competitor where id = ?;";
+    const char *sql = "delete from competitor\n"
+                      "where id = ?;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -156,7 +168,9 @@ int delete_competitor(sql_context *ctx, sql_int64 Id) {
 }
 
 int get_boat(sql_context *ctx, sql_int64 Id, Boat *result) {
-    const char *sql = "select * from boat where id = ?;";
+    const char *sql = "select *\n"
+                      "from boat\n"
+                      "where id = ?;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -178,7 +192,8 @@ int get_boat(sql_context *ctx, sql_int64 Id, Boat *result) {
 }
 
 int list_boats(sql_context *ctx, Boat **result, size_t *count) {
-    const char *sql = "select * from boat;";
+    const char *sql = "select *\n"
+                      "from boat;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -210,7 +225,9 @@ int list_boats(sql_context *ctx, Boat **result, size_t *count) {
 }
 
 int create_boat(sql_context *ctx, CreateBoatParams *params, Boat *result) {
-    const char *sql = "insert into boat (name, registration) values (?, ?) returning *;";
+    const char *sql = "insert into boat (name, registration)\n"
+                      "values (?, ?)\n"
+                      "returning *;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -233,7 +250,9 @@ int create_boat(sql_context *ctx, CreateBoatParams *params, Boat *result) {
 }
 
 int get_catch(sql_context *ctx, sql_int64 Id, Catch *result) {
-    const char *sql = "select * from catch where id = ?;";
+    const char *sql = "select *\n"
+                      "from catch\n"
+                      "where id = ?;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -257,7 +276,9 @@ int get_catch(sql_context *ctx, sql_int64 Id, Catch *result) {
 }
 
 int list_catches_by_competitor(sql_context *ctx, sql_int64 CompetitorId, Catch **result, size_t *count) {
-    const char *sql = "select * from catch where competitor_id = ?;";
+    const char *sql = "select *\n"
+                      "from catch\n"
+                      "where competitor_id = ?;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
@@ -293,7 +314,9 @@ int list_catches_by_competitor(sql_context *ctx, sql_int64 CompetitorId, Catch *
 }
 
 int create_catch(sql_context *ctx, CreateCatchParams *params, Catch *result) {
-    const char *sql = "insert into catch (competitor_id, species, weight_grams, caught_at) values (?, ?, ?, ?) returning *;";
+    const char *sql = "insert into catch (competitor_id, species, weight_grams, caught_at)\n"
+                      "values (?, ?, ?, ?)\n"
+                      "returning *;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;

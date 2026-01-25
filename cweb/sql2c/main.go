@@ -675,8 +675,9 @@ func (g *Generator) generateFunctionImpl(q Query) {
 	resultType := g.typeName(q.Table)
 
 	// Escape SQL for C string
-	sqlStr := strings.ReplaceAll(q.SQL, "\"", "\\\"")
-	sqlStr = strings.ReplaceAll(sqlStr, "\n", " ")
+	// sqlStr := strings.ReplaceAll(q.SQL, "\"", "\\\"")
+	// sqlStr = strings.ReplaceAll(sqlStr, "\n", " ")
+	sqlStr := strings.TrimSpace(escapeCString(q.SQL))
 
 	switch q.ReturnType {
 	case "one":
@@ -701,7 +702,7 @@ func (g *Generator) generateOneImpl(q Query, funcName, resultType, sqlStr string
 			funcName, paramsType, resultType))
 	}
 
-	g.implOut.WriteString(fmt.Sprintf("    const char *sql = \"%s\";\n", sqlStr))
+	g.implOut.WriteString(fmt.Sprintf("    const char *sql = %s;\n", sqlStr))
 	g.implOut.WriteString("    sqlite3_stmt *stmt;\n")
 	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);\n")
 	g.implOut.WriteString("    if (rc != SQLITE_OK) return rc;\n\n")
@@ -739,7 +740,7 @@ func (g *Generator) generateManyImpl(q Query, funcName, resultType, sqlStr strin
 			funcName, paramsType, resultType))
 	}
 
-	g.implOut.WriteString(fmt.Sprintf("    const char *sql = \"%s\";\n", sqlStr))
+	g.implOut.WriteString(fmt.Sprintf("    const char *sql = %s;\n", sqlStr))
 	g.implOut.WriteString("    sqlite3_stmt *stmt;\n")
 	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);\n")
 	g.implOut.WriteString("    if (rc != SQLITE_OK) return rc;\n\n")
@@ -787,7 +788,7 @@ func (g *Generator) generateExecImpl(q Query, funcName, sqlStr string) {
 		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *params) {\n", funcName, paramsType))
 	}
 
-	g.implOut.WriteString(fmt.Sprintf("    const char *sql = \"%s\";\n", sqlStr))
+	g.implOut.WriteString(fmt.Sprintf("    const char *sql = %s;\n", sqlStr))
 	g.implOut.WriteString("    sqlite3_stmt *stmt;\n")
 	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);\n")
 	g.implOut.WriteString("    if (rc != SQLITE_OK) return rc;\n\n")
@@ -992,3 +993,28 @@ func (g *Generator) sortedTableNames() []string {
 	return names
 }
 
+func escapeCString(s string) string {
+	// Remove trailing newline to avoid empty last line
+	s = strings.TrimSuffix(s, "\n")
+	lines := strings.Split(s, "\n")
+	var result strings.Builder
+
+	for i, line := range lines {
+		// Escape special characters
+		escaped := strings.ReplaceAll(line, "\\", "\\\\")
+		escaped = strings.ReplaceAll(escaped, "\"", "\\\"")
+
+		result.WriteString("                      \"")
+		result.WriteString(escaped)
+		result.WriteString("\\n\"")
+
+		// if i == len(lines)-1 {
+		// 	result.WriteString(";")
+		// }
+		if i != len(lines)-1 {
+			result.WriteString("\n")
+		}
+	}
+
+	return result.String()
+}

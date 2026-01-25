@@ -69,7 +69,9 @@ typedef struct {
 
 typedef struct {
     sqlite3 *db;
-    void *(*alloc)(void*, int);
+    void* (*alloc)(void *ctx, size_t size);
+    void  (*free)(void *ctx, void *ptr);  // Can be NULL for arenas
+    void *ctx;
 } sql_context;
 
 // Table structs
