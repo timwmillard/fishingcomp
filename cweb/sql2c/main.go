@@ -675,8 +675,6 @@ func (g *Generator) generateFunctionImpl(q Query) {
 	resultType := g.typeName(q.Table)
 
 	// Escape SQL for C string
-	// sqlStr := strings.ReplaceAll(q.SQL, "\"", "\\\"")
-	// sqlStr = strings.ReplaceAll(sqlStr, "\n", " ")
 	sqlStr := strings.TrimSpace(escapeCString(q.SQL))
 
 	switch q.ReturnType {
