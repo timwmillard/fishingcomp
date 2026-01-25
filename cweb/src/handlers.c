@@ -195,10 +195,34 @@ void api_update_competitor(Req *req, Res *res) {
     reply(res, NOT_IMPLEMENTED, NULL, 0);
 }
 
+void delete_competitor_work(void *cx) {
+    context *ctx = cx;
+
+    const char *id_str = get_param(ctx->req, "id");
+    int id = atoi(id_str);
+
+    ctx->log_message = "Delete Competitor";
+    int rc = delete_competitor(sqldb, id);
+    if (rc != SQLITE_OK) {
+        slog_error("Competitor not found",
+                slog_int("id", id)
+        );
+        response(ctx, NOT_FOUND, api_error_to_json(&ctx->alloc, 
+                    &(api_Error){.error = "Competitor not found"}));
+        return;
+    }
+    slog_debug("Competitor deleted", slog_int("id", id));
+    response(ctx, OK, "");
+}
+
 // DELETE /competitors/{id} - Delete a competitor
 void api_delete_competitor(Req *req, Res *res) {
-    slog_debug("Delete Competitors Not Implmented");
-    reply(res, NOT_IMPLEMENTED, NULL, 0);
+    context *ctx = arena_alloc(req->arena, sizeof(context));
+    memset(ctx, 0, sizeof(context));
+    ctx->req = req;
+    ctx->res = res;
+    ctx->alloc = api_arena_allocator(req->arena);
+    spawn(ctx, delete_competitor_work, work_done_send_json);
 }
 
 
