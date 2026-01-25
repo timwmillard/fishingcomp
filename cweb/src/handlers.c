@@ -185,8 +185,8 @@ void api_get_competitor_res(Competitor *comp, void *data) {
     send_json(res, OK, body);
 }
 
-void sql2api_competitor(Competitor *comp, void *data) {
-    api_Competitor *api = data;
+void sql2api_competitor(Competitor *comp, void *ctx) {
+    api_Competitor *api = ctx;
     api->id = comp->ID;
     api->first_name = strdup((char*)comp->FirstName.data);  // TODO: better without strdup??
     api->last_name = strdup((char*)comp->LastName.data);

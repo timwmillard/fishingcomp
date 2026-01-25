@@ -601,13 +601,13 @@ func (g *Generator) generateFunctionDecl(q Query) {
 	switch q.ReturnType {
 	case "one":
 		if len(q.Params) == 0 {
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *result);\n\n", funcName, resultType))
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db, void (*cb)(%s*, void*), void *ctx);\n", funcName, resultType))
 		} else if len(q.Params) == 1 {
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s %s, %s *result);\n\n",
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s %s, void (*cb)(%s*, void*), void *ctx);\n",
 				funcName, q.Params[0].Type, g.applyStyle(q.Params[0].Name, g.fieldStyle), resultType))
 		} else {
 			paramsType := g.typeName(q.Name + "Params")
-			g.out.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *params, %s *result);\n\n",
+			g.out.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s *params, void (*cb)(%s*, void*), void *ctx);\n",
 				funcName, paramsType, resultType))
 		}
 
@@ -677,6 +677,9 @@ func (g *Generator) generateFunctionImpl(q Query) {
 	// Escape SQL for C string
 	sqlStr := strings.TrimSpace(escapeCString(q.SQL))
 
+	// Function comment
+	g.implOut.WriteString(fmt.Sprintf("// %s :%s\n", q.Name, q.ReturnType))
+
 	switch q.ReturnType {
 	case "one":
 		g.generateOneImpl(q, funcName, resultType, sqlStr)
@@ -690,19 +693,19 @@ func (g *Generator) generateFunctionImpl(q Query) {
 func (g *Generator) generateOneImpl(q Query, funcName, resultType, sqlStr string) {
 	// Function signature
 	if len(q.Params) == 0 {
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *result) {\n", funcName, resultType))
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db, void (*cb)(%s*, void*), void *ctx) {\n", funcName, resultType))
 	} else if len(q.Params) == 1 {
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s %s, %s *result) {\n",
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s %s, void (*cb)(%s*, void*), void *ctx) {\n",
 			funcName, q.Params[0].Type, g.applyStyle(q.Params[0].Name, g.fieldStyle), resultType))
 	} else {
 		paramsType := g.typeName(q.Name + "Params")
-		g.implOut.WriteString(fmt.Sprintf("int %s(sql_context *ctx, %s *params, %s *result) {\n",
+		g.implOut.WriteString(fmt.Sprintf("int %s(sqlite3 *db, %s *params, void (*cb)(%s*, void*), void *ctx) {\n",
 			funcName, paramsType, resultType))
 	}
 
 	g.implOut.WriteString(fmt.Sprintf("    const char *sql = %s;\n", sqlStr))
 	g.implOut.WriteString("    sqlite3_stmt *stmt;\n")
-	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(ctx->db, sql, -1, &stmt, NULL);\n")
+	g.implOut.WriteString("    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);\n")
 	g.implOut.WriteString("    if (rc != SQLITE_OK) return rc;\n\n")
 
 	// Bind parameters
@@ -710,11 +713,12 @@ func (g *Generator) generateOneImpl(q Query, funcName, resultType, sqlStr string
 
 	g.implOut.WriteString("    rc = sqlite3_step(stmt);\n")
 	g.implOut.WriteString("    if (rc == SQLITE_ROW) {\n")
-	g.implOut.WriteString("        memset(result, 0, sizeof(*result));\n")
+	g.implOut.WriteString(fmt.Sprintf("        %s result;\n", resultType))
 
 	// Extract columns
 	g.generateExtractColumns(q.Columns)
 
+	g.implOut.WriteString("        cb(&result, ctx);\n")
 	g.implOut.WriteString("        rc = SQLITE_OK;\n")
 	g.implOut.WriteString("    } else if (rc == SQLITE_DONE) {\n")
 	g.implOut.WriteString("        rc = SQLITE_NOTFOUND;\n")
@@ -816,7 +820,7 @@ func (g *Generator) generateBindParams(q Query) {
 		case "sql_int":
 			g.implOut.WriteString(fmt.Sprintf("    sqlite3_bind_int(stmt, %d, %s);\n", idx, paramAccess))
 		case "sql_text":
-			g.implOut.WriteString(fmt.Sprintf("    sqlite3_bind_text(stmt, %d, %s.data, %s.len, SQLITE_STATIC);\n",
+			g.implOut.WriteString(fmt.Sprintf("    sqlite3_bind_text(stmt, %d, (char*)%s.data, %s.len, SQLITE_STATIC);\n",
 				idx, paramAccess, paramAccess))
 		case "sql_double":
 			g.implOut.WriteString(fmt.Sprintf("    sqlite3_bind_double(stmt, %d, %s);\n", idx, paramAccess))
@@ -840,33 +844,34 @@ func (g *Generator) generateExtractColumns(cols []Column) {
 		switch {
 		case strings.HasPrefix(sqlType, "sql_nullint"):
 			g.implOut.WriteString(fmt.Sprintf("        if (sqlite3_column_type(stmt, %d) != SQLITE_NULL) {\n", i))
-			g.implOut.WriteString(fmt.Sprintf("            result->%s.value = sqlite3_column_int64(stmt, %d);\n", fieldName, i))
-			g.implOut.WriteString(fmt.Sprintf("            result->%s.null = false;\n", fieldName))
-			g.implOut.WriteString(fmt.Sprintf("        } else { result->%s.null = true; }\n", fieldName))
+			g.implOut.WriteString(fmt.Sprintf("            result.%s.value = sqlite3_column_int64(stmt, %d);\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("            result.%s.null = false;\n", fieldName))
+			g.implOut.WriteString(fmt.Sprintf("        } else { result.%s.null = true; }\n", fieldName))
 		case sqlType == "sql_int64":
-			g.implOut.WriteString(fmt.Sprintf("        result->%s = sqlite3_column_int64(stmt, %d);\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("        result.%s = sqlite3_column_int64(stmt, %d);\n", fieldName, i))
 		case sqlType == "sql_int":
-			g.implOut.WriteString(fmt.Sprintf("        result->%s = sqlite3_column_int(stmt, %d);\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("        result.%s = sqlite3_column_int(stmt, %d);\n", fieldName, i))
 		case strings.HasPrefix(sqlType, "sql_nulltext"):
 			g.implOut.WriteString(fmt.Sprintf("        if (sqlite3_column_type(stmt, %d) != SQLITE_NULL) {\n", i))
-			g.implOut.WriteString(fmt.Sprintf("            result->%s.data = dup_text(ctx, sqlite3_column_text(stmt, %d)).data;\n", fieldName, i))
-			g.implOut.WriteString(fmt.Sprintf("            result->%s.len = sqlite3_column_bytes(stmt, %d);\n", fieldName, i))
-			g.implOut.WriteString(fmt.Sprintf("            result->%s.null = false;\n", fieldName))
-			g.implOut.WriteString(fmt.Sprintf("        } else { result->%s.null = true; }\n", fieldName))
+			g.implOut.WriteString(fmt.Sprintf("            result.%s.data = sqlite3_column_text(stmt, %d);\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("            result.%s.len = sqlite3_column_bytes(stmt, %d);\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("            result.%s.null = false;\n", fieldName))
+			g.implOut.WriteString(fmt.Sprintf("        } else { result.%s.null = true; }\n", fieldName))
 		case sqlType == "sql_text":
-			g.implOut.WriteString(fmt.Sprintf("        result->%s = dup_text(ctx, sqlite3_column_text(stmt, %d));\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("        result.%s.data = (sql_byte*)sqlite3_column_text(stmt, %d);\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("        result.%s.len = sqlite3_column_bytes(stmt, %d);\n", fieldName, i))
 		case strings.HasPrefix(sqlType, "sql_nulldouble"):
 			g.implOut.WriteString(fmt.Sprintf("        if (sqlite3_column_type(stmt, %d) != SQLITE_NULL) {\n", i))
-			g.implOut.WriteString(fmt.Sprintf("            result->%s.value = sqlite3_column_double(stmt, %d);\n", fieldName, i))
-			g.implOut.WriteString(fmt.Sprintf("            result->%s.null = false;\n", fieldName))
-			g.implOut.WriteString(fmt.Sprintf("        } else { result->%s.null = true; }\n", fieldName))
+			g.implOut.WriteString(fmt.Sprintf("            result.%s.value = sqlite3_column_double(stmt, %d);\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("            result.%s.null = false;\n", fieldName))
+			g.implOut.WriteString(fmt.Sprintf("        } else { result.%s.null = true; }\n", fieldName))
 		case sqlType == "sql_double":
-			g.implOut.WriteString(fmt.Sprintf("        result->%s = sqlite3_column_double(stmt, %d);\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("        result.%s = sqlite3_column_double(stmt, %d);\n", fieldName, i))
 		case sqlType == "sql_bool":
-			g.implOut.WriteString(fmt.Sprintf("        result->%s = sqlite3_column_int(stmt, %d) != 0;\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("        result.%s = sqlite3_column_int(stmt, %d) != 0;\n", fieldName, i))
 		default:
 			// Treat unknown as text
-			g.implOut.WriteString(fmt.Sprintf("        result->%s = dup_text(ctx, sqlite3_column_text(stmt, %d));\n", fieldName, i))
+			g.implOut.WriteString(fmt.Sprintf("        result.%s = sqlite3_column_text(stmt, %d); // BUG\n", fieldName, i))
 		}
 	}
 }
