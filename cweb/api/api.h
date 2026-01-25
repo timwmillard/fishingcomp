@@ -31,6 +31,7 @@ static inline api_Allocator api_arena_allocator(Arena *arena) {
 
 // Struct forward declarations
 typedef struct api_Competitor api_Competitor;
+typedef struct api_Error api_Error;
 
 // ============ Structs ============
 
@@ -44,12 +45,23 @@ struct api_Competitor {
     char* last_name;
 };
 
+// Error response
+struct api_Error {
+    // Error message
+    char* error;
+};
+
 // ============ JSON Functions ============
 
 // JSON serialization for api_Competitor
 char *api_competitor_to_json(api_Allocator *alloc, api_Competitor *obj);
 int api_competitor_from_json(api_Allocator *alloc, const char *json, api_Competitor *obj);
 void api_competitor_free(api_Allocator *alloc, api_Competitor *obj);
+
+// JSON serialization for api_Error
+char *api_error_to_json(api_Allocator *alloc, api_Error *obj);
+int api_error_from_json(api_Allocator *alloc, const char *json, api_Error *obj);
+void api_error_free(api_Allocator *alloc, api_Error *obj);
 
 // ============ Handlers (ecewo) ============
 

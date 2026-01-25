@@ -222,6 +222,8 @@ static int write_escaped(char *buf, size_t size, const char *str) {
 // Forward declarations
 static const char *api_competitor_parse(api_Allocator *alloc, const char *json, api_Competitor *obj);
 static int api_competitor_write(api_Allocator *alloc, char *buf, size_t size, api_Competitor *obj);
+static const char *api_error_parse(api_Allocator *alloc, const char *json, api_Error *obj);
+static int api_error_write(api_Allocator *alloc, char *buf, size_t size, api_Error *obj);
 
 static int api_competitor_write(api_Allocator *alloc, char *buf, size_t size, api_Competitor *obj) {
     (void)alloc; // unused in write, but kept for consistent signature
@@ -277,5 +279,47 @@ void api_competitor_free(api_Allocator *alloc, api_Competitor *obj) {
     if (obj == NULL) return;
     json_free(alloc, obj->first_name);
     json_free(alloc, obj->last_name);
+}
+
+static int api_error_write(api_Allocator *alloc, char *buf, size_t size, api_Error *obj) {
+    (void)alloc; // unused in write, but kept for consistent signature
+    if (obj == NULL) return snprintf(buf, size, "null");
+    int len = 0;
+    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "{");
+    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "\"error\":");
+    len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, obj->error);
+    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "}");
+    return len;
+}
+
+char *api_error_to_json(api_Allocator *alloc, api_Error *obj) {
+    int len = api_error_write(alloc, NULL, 0, obj);
+    char *buf = json_alloc(alloc, len + 1);
+    if (buf == NULL) return NULL;
+    api_error_write(alloc, buf, len + 1, obj);
+    return buf;
+}
+
+static const char *api_error_parse(api_Allocator *alloc, const char *json, api_Error *obj) {
+    if (json == NULL || obj == NULL) return NULL;
+    memset(obj, 0, sizeof(*obj));
+    const char *p;
+    (void)p; // may be unused
+
+    p = find_key(json, "error");
+    if (p != NULL) {
+        obj->error = parse_string(alloc, p, &p);
+    }
+
+    return skip_value(json);
+}
+
+int api_error_from_json(api_Allocator *alloc, const char *json, api_Error *obj) {
+    return api_error_parse(alloc, json, obj) != NULL ? 0 : -1;
+}
+
+void api_error_free(api_Allocator *alloc, api_Error *obj) {
+    if (obj == NULL) return;
+    json_free(alloc, obj->error);
 }
 

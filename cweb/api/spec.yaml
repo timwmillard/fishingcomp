@@ -23,6 +23,12 @@ paths:
       responses:
         '201':
           description: Created
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /competitors/{id}:
     get:
@@ -37,6 +43,12 @@ paths:
       responses:
         '200':
           description: Competitor details
+        '404':
+          description: Competitor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       operationId: updateCompetitor
       summary: Update a competitor
@@ -49,6 +61,18 @@ paths:
       responses:
         '200':
           description: Updated
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Competitor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
       operationId: deleteCompetitor
       summary: Delete a competitor
@@ -61,9 +85,25 @@ paths:
       responses:
         '204':
           description: Deleted
+        '404':
+          description: Competitor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
   schemas:
+    Error:
+      type: object
+      description: Error response
+      properties:
+        error:
+          type: string
+          description: Error message
+      required:
+        - error
+
     Competitor:
       type: object
       description: A competitor in the fishing competition

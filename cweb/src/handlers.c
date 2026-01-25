@@ -304,7 +304,8 @@ void get_competitor_work(void *cx) {
         slog_error("Competitor not found",
                 slog_int("id", id)
         );
-        response(ctx, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
+        response(ctx, NOT_FOUND, api_error_to_json(&ctx->alloc, 
+                    &(api_Error){.error = "Competitor not found"}));
         return;
     }
 
