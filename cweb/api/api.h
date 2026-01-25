@@ -63,11 +63,11 @@ void api_delete_competitor(Req *req, Res *res);
 // ============ Routes (ecewo) ============
 
 static inline void api_routes() {
-    get("/competitors", api_get_competitors);
-    post("/competitors", api_create_competitor);
-    get("/competitors/:id", api_get_competitor);
-    put("/competitors/:id", api_update_competitor);
-    del("/competitors/:id", api_delete_competitor);
+    get("/competitors", api_get_competitors);    // List all competitors
+    post("/competitors", api_create_competitor);    // Create a competitor
+    get("/competitors/:id", api_get_competitor);    // Get a competitor by ID
+    put("/competitors/:id", api_update_competitor);    // Update a competitor
+    del("/competitors/:id", api_delete_competitor);    // Delete a competitor
 }
 
 #endif // API_H

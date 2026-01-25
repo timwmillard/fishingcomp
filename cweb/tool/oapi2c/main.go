@@ -36,23 +36,23 @@ type Config struct {
 
 // FieldInfo stores information about a struct field for JSON generation
 type FieldInfo struct {
-	JSONName      string // Original name from OpenAPI (used in JSON)
-	FieldName     string // C field name (styled)
-	CType         string // C type
-	IsArray       bool
-	IsRef         bool   // Is a reference to another struct
-	RefType       string // The referenced struct type (if IsRef)
-	RefSchemaName string // Original schema name for the reference (for function names)
-	IsString      bool
-	IsInt         bool
-	IsInt32       bool
-	IsFloat       bool
-	IsDouble      bool
-	IsBool        bool
-	IsEnum        bool   // Is an enum type
-	EnumType      string // The enum type name (if IsEnum)
+	JSONName       string // Original name from OpenAPI (used in JSON)
+	FieldName      string // C field name (styled)
+	CType          string // C type
+	IsArray        bool
+	IsRef          bool   // Is a reference to another struct
+	RefType        string // The referenced struct type (if IsRef)
+	RefSchemaName  string // Original schema name for the reference (for function names)
+	IsString       bool
+	IsInt          bool
+	IsInt32        bool
+	IsFloat        bool
+	IsDouble       bool
+	IsBool         bool
+	IsEnum         bool   // Is an enum type
+	EnumType       string // The enum type name (if IsEnum)
 	EnumSchemaName string // Original schema name for the enum (for function names)
-	CountField    string // Name of the count field for arrays
+	CountField     string // Name of the count field for arrays
 }
 
 // EnumInfo stores information about an enum for code generation
@@ -1447,9 +1447,9 @@ func (g *Generator) generateRoutes() {
 		ecePath := g.convertPathToEcewo(path)
 
 		operations := []struct {
-			method   string
-			ecewoFn  string
-			op       *openapi3.Operation
+			method  string
+			ecewoFn string
+			op      *openapi3.Operation
 		}{
 			{"get", "get", pathItem.Get},
 			{"post", "post", pathItem.Post},
@@ -1463,7 +1463,12 @@ func (g *Generator) generateRoutes() {
 				continue
 			}
 			funcName := g.operationToFuncName(item.method, path, item.op)
-			g.out.WriteString(fmt.Sprintf("    %s(\"%s\", %s);\n", item.ecewoFn, ecePath, funcName))
+			g.out.WriteString(fmt.Sprintf("    %s(\"%s\", %s);", item.ecewoFn, ecePath, funcName))
+			if item.op.Summary != "" {
+				g.out.WriteString(fmt.Sprintf("    // %s\n", item.op.Summary))
+			} else {
+				g.out.WriteString("\n")
+			}
 		}
 	}
 
