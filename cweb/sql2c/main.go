@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/rqlite/sql"
 	"gopkg.in/yaml.v3"
 )
 
@@ -218,156 +219,54 @@ func main() {
 	fmt.Printf("Generated %s\n", implFile)
 }
 
-// parseSchema parses CREATE TABLE statements from schema.sql
-func (g *Generator) parseSchema(sql string) error {
-	// Match CREATE TABLE start
-	tableStartRe := regexp.MustCompile(`(?i)create\s+table\s+(?:if\s+not\s+exists\s+)?(\w+)\s*\(`)
-	matches := tableStartRe.FindAllStringSubmatchIndex(sql, -1)
+// parseSchema parses CREATE TABLE statements from schema.sql using the SQL parser
+func (g *Generator) parseSchema(sqlText string) error {
+	parser := sql.NewParser(strings.NewReader(sqlText))
+	stmts, err := parser.ParseStatements()
+	if err != nil {
+		return fmt.Errorf("parsing SQL: %w", err)
+	}
 
-	for _, match := range matches {
-		tableName := sql[match[2]:match[3]]
-		bodyStart := match[1] // Position after opening (
-
-		// Find matching closing ) by counting parentheses
-		depth := 1
-		bodyEnd := bodyStart
-		for i := bodyStart; i < len(sql) && depth > 0; i++ {
-			if sql[i] == '(' {
-				depth++
-			} else if sql[i] == ')' {
-				depth--
-			}
-			if depth == 0 {
-				bodyEnd = i
-			}
+	for _, stmt := range stmts {
+		createStmt, ok := stmt.(*sql.CreateTableStatement)
+		if !ok {
+			continue
 		}
 
-		columnsDef := sql[bodyStart:bodyEnd]
-
+		tableName := createStmt.Name.Name
 		table := &Table{Name: tableName}
-		if err := g.parseColumns(table, columnsDef); err != nil {
-			return fmt.Errorf("parsing table %s: %w", tableName, err)
+
+		for _, colDef := range createStmt.Columns {
+			col := Column{
+				Name:     colDef.Name.Name,
+				Nullable: true, // Default to nullable
+			}
+
+			// Get type name
+			if colDef.Type != nil {
+				col.Type = strings.ToLower(colDef.Type.Name.Name)
+			}
+
+			// Check constraints
+			for _, constraint := range colDef.Constraints {
+				switch c := constraint.(type) {
+				case *sql.PrimaryKeyConstraint:
+					col.IsPK = true
+					col.Nullable = false
+				case *sql.NotNullConstraint:
+					col.Nullable = false
+				case *sql.DefaultConstraint:
+					_ = c // Has default, keep nullable status
+				}
+			}
+
+			table.Columns = append(table.Columns, col)
 		}
+
 		g.tables[tableName] = table
 	}
 
 	return nil
-}
-
-// parseColumns parses column definitions from a CREATE TABLE body
-func (g *Generator) parseColumns(table *Table, def string) error {
-	// Strip inline comments (-- comment) before parsing
-	def = stripInlineComments(def)
-
-	// Split by comma, but be careful of commas inside constraints
-	lines := splitColumnDefs(def)
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		// Skip constraints (UNIQUE, CHECK, FOREIGN KEY, etc.)
-		lower := strings.ToLower(line)
-		if strings.HasPrefix(lower, "unique") ||
-			strings.HasPrefix(lower, "check") ||
-			strings.HasPrefix(lower, "foreign") ||
-			strings.HasPrefix(lower, "primary key") ||
-			strings.HasPrefix(lower, "constraint") {
-			continue
-		}
-
-		col := parseColumnDef(line)
-		if col.Name != "" {
-			table.Columns = append(table.Columns, col)
-		}
-	}
-
-	return nil
-}
-
-// stripInlineComments removes -- comments from each line
-func stripInlineComments(sql string) string {
-	lines := strings.Split(sql, "\n")
-	for i, line := range lines {
-		// Find -- that's not inside a string
-		inString := false
-		for j := 0; j < len(line); j++ {
-			if line[j] == '\'' {
-				inString = !inString
-			} else if !inString && j+1 < len(line) && line[j] == '-' && line[j+1] == '-' {
-				lines[i] = line[:j]
-				break
-			}
-		}
-	}
-	return strings.Join(lines, "\n")
-}
-
-// splitColumnDefs splits column definitions handling parentheses
-func splitColumnDefs(def string) []string {
-	var result []string
-	var current strings.Builder
-	depth := 0
-
-	for _, ch := range def {
-		if ch == '(' {
-			depth++
-			current.WriteRune(ch)
-		} else if ch == ')' {
-			depth--
-			current.WriteRune(ch)
-		} else if ch == ',' && depth == 0 {
-			result = append(result, current.String())
-			current.Reset()
-		} else {
-			current.WriteRune(ch)
-		}
-	}
-
-	if current.Len() > 0 {
-		result = append(result, current.String())
-	}
-
-	return result
-}
-
-// parseColumnDef parses a single column definition
-func parseColumnDef(def string) Column {
-	// Pattern: column_name type [constraints...]
-	def = strings.TrimSpace(def)
-	parts := strings.Fields(def)
-	if len(parts) < 2 {
-		return Column{}
-	}
-
-	// Clean the column name - remove any non-ASCII characters
-	name := strings.TrimSpace(parts[0])
-	name = strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' {
-			return r
-		}
-		return -1
-	}, name)
-
-	col := Column{
-		Name:     name,
-		Type:     strings.ToLower(parts[1]),
-		Nullable: true, // Default to nullable
-	}
-
-	// Check for NOT NULL or PRIMARY KEY
-	defLower := strings.ToLower(def)
-	if strings.Contains(defLower, "not null") {
-		col.Nullable = false
-	}
-	if strings.Contains(defLower, "primary key") {
-		col.IsPK = true
-		col.Nullable = false
-	}
-
-	return col
 }
 
 // parseQueries parses query definitions from queries.sql
@@ -407,184 +306,177 @@ func (g *Generator) parseQueries(sql string) error {
 	return nil
 }
 
-// parseQuerySQL analyzes a SQL statement to extract metadata
+// parseQuerySQL analyzes a SQL statement to extract metadata using the SQL parser
 func (g *Generator) parseQuerySQL(q *Query) {
-	sqlLower := strings.ToLower(q.SQL)
-
-	// Determine query type and extract table
-	if strings.HasPrefix(sqlLower, "select") {
-		g.parseSelectQuery(q)
-	} else if strings.HasPrefix(sqlLower, "insert") {
-		g.parseInsertQuery(q)
-	} else if strings.HasPrefix(sqlLower, "update") {
-		g.parseUpdateQuery(q)
-	} else if strings.HasPrefix(sqlLower, "delete") {
-		g.parseDeleteQuery(q)
-	}
-}
-
-// parseSelectQuery parses a SELECT statement
-func (g *Generator) parseSelectQuery(q *Query) {
-	sqlLower := strings.ToLower(q.SQL)
-
-	// Extract table name from FROM clause
-	fromRe := regexp.MustCompile(`(?i)from\s+(\w+)`)
-	if match := fromRe.FindStringSubmatch(q.SQL); match != nil {
-		q.Table = match[1]
-	}
-
-	// Check if SELECT *
-	if strings.Contains(sqlLower, "select *") || strings.Contains(sqlLower, "select\n*") {
-		if table, ok := g.tables[q.Table]; ok {
-			q.Columns = table.Columns
-		}
-	}
-
-	// Extract WHERE clause parameters
-	g.extractWhereParams(q)
-}
-
-// parseInsertQuery parses an INSERT statement
-func (g *Generator) parseInsertQuery(q *Query) {
-	// Extract table name
-	tableRe := regexp.MustCompile(`(?i)insert\s+into\s+(\w+)`)
-	if match := tableRe.FindStringSubmatch(q.SQL); match != nil {
-		q.Table = match[1]
-	}
-
-	// Extract column names from INSERT
-	colsRe := regexp.MustCompile(`(?is)insert\s+into\s+\w+\s*\(([^)]+)\)`)
-	if match := colsRe.FindStringSubmatch(q.SQL); match != nil {
-		colNames := strings.Split(match[1], ",")
-		table := g.tables[q.Table]
-
-		for _, colName := range colNames {
-			colName = strings.TrimSpace(colName)
-			// Clean the column name
-			colName = strings.Map(func(r rune) rune {
-				if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' {
-					return r
-				}
-				return -1
-			}, colName)
-			if colName == "" {
-				continue
-			}
-			// Find column type from table
-			if table != nil {
-				for _, col := range table.Columns {
-					if strings.EqualFold(col.Name, colName) {
-						q.Params = append(q.Params, Param{
-							Name: col.Name,
-							Type: g.sqliteTypeToSqlType(col.Type, false), // Params are never null
-						})
-						break
-					}
-				}
-			}
-		}
-	}
-
-	// Check for RETURNING *
-	if strings.Contains(strings.ToLower(q.SQL), "returning *") {
-		if table, ok := g.tables[q.Table]; ok {
-			q.Columns = table.Columns
-		}
-	}
-}
-
-// parseUpdateQuery parses an UPDATE statement
-func (g *Generator) parseUpdateQuery(q *Query) {
-	// Extract table name
-	tableRe := regexp.MustCompile(`(?i)update\s+(\w+)`)
-	if match := tableRe.FindStringSubmatch(q.SQL); match != nil {
-		q.Table = match[1]
-	}
-
-	// Extract SET clause parameters
-	// Find content between SET and WHERE/RETURNING
-	setRe := regexp.MustCompile(`(?is)set\s+(.*?)(?:\s+where|\s+returning|;|$)`)
-	if match := setRe.FindStringSubmatch(q.SQL); match != nil {
-		setClause := match[1]
-		assignments := strings.Split(setClause, ",")
-		table := g.tables[q.Table]
-
-		for _, assign := range assignments {
-			assign = strings.TrimSpace(assign)
-			if assign == "" {
-				continue
-			}
-			parts := strings.SplitN(assign, "=", 2)
-			if len(parts) == 2 {
-				rhs := strings.TrimSpace(parts[1])
-				if rhs == "?" {
-					colName := strings.TrimSpace(parts[0])
-					// Clean column name
-					colName = strings.Map(func(r rune) rune {
-						if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' {
-							return r
-						}
-						return -1
-					}, colName)
-					if table != nil && colName != "" {
-						for _, col := range table.Columns {
-							if strings.EqualFold(col.Name, colName) {
-								q.Params = append(q.Params, Param{
-									Name: col.Name,
-									Type: g.sqliteTypeToSqlType(col.Type, false),
-								})
-								break
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Extract WHERE clause parameters
-	g.extractWhereParams(q)
-
-	// Check for RETURNING *
-	if strings.Contains(strings.ToLower(q.SQL), "returning *") {
-		if table, ok := g.tables[q.Table]; ok {
-			q.Columns = table.Columns
-		}
-	}
-}
-
-// parseDeleteQuery parses a DELETE statement
-func (g *Generator) parseDeleteQuery(q *Query) {
-	// Extract table name
-	tableRe := regexp.MustCompile(`(?i)delete\s+from\s+(\w+)`)
-	if match := tableRe.FindStringSubmatch(q.SQL); match != nil {
-		q.Table = match[1]
-	}
-
-	// Extract WHERE clause parameters
-	g.extractWhereParams(q)
-}
-
-// extractWhereParams extracts parameters from WHERE clause
-func (g *Generator) extractWhereParams(q *Query) {
-	sqlLower := strings.ToLower(q.SQL)
-
-	// Find WHERE clause
-	whereIdx := strings.Index(sqlLower, "where")
-	if whereIdx == -1 {
+	parser := sql.NewParser(strings.NewReader(q.SQL))
+	stmt, err := parser.ParseStatement()
+	if err != nil {
+		// Fall back to simple detection if parsing fails
 		return
 	}
 
-	whereClause := q.SQL[whereIdx:]
+	switch s := stmt.(type) {
+	case *sql.SelectStatement:
+		g.parseSelectStatement(q, s)
+	case *sql.InsertStatement:
+		g.parseInsertStatement(q, s)
+	case *sql.UpdateStatement:
+		g.parseUpdateStatement(q, s)
+	case *sql.DeleteStatement:
+		g.parseDeleteStatement(q, s)
+	}
+}
 
-	// Find column = ? patterns
-	paramRe := regexp.MustCompile(`(\w+)\s*=\s*\?`)
-	matches := paramRe.FindAllStringSubmatch(whereClause, -1)
+// parseSelectStatement parses a SELECT statement using the AST
+func (g *Generator) parseSelectStatement(q *Query, s *sql.SelectStatement) {
+	// Extract table name from source
+	if s.Source != nil {
+		if tbl, ok := s.Source.(*sql.QualifiedTableName); ok {
+			q.Table = tbl.Name.Name
+		}
+	}
+
+	// Check if SELECT * (all columns)
+	if len(s.Columns) == 1 && s.Columns[0].Star.IsValid() {
+		if table, ok := g.tables[q.Table]; ok {
+			q.Columns = table.Columns
+		}
+	}
+
+	// Extract WHERE clause parameters
+	if s.WhereExpr != nil {
+		g.extractExprParams(q, s.WhereExpr)
+	}
+}
+
+// parseInsertStatement parses an INSERT statement using the AST
+func (g *Generator) parseInsertStatement(q *Query, s *sql.InsertStatement) {
+	// Extract table name
+	if s.Table != nil {
+		q.Table = s.Table.Name
+	}
 
 	table := g.tables[q.Table]
-	for _, match := range matches {
-		colName := match[1]
+
+	// Extract column names and match to params
+	for _, col := range s.Columns {
+		colName := col.Name
 		if table != nil {
+			for _, tableCol := range table.Columns {
+				if strings.EqualFold(tableCol.Name, colName) {
+					q.Params = append(q.Params, Param{
+						Name: tableCol.Name,
+						Type: g.sqliteTypeToSqlType(tableCol.Type, false),
+					})
+					break
+				}
+			}
+		}
+	}
+
+	// Check for RETURNING clause
+	if s.ReturningClause != nil {
+		for _, rc := range s.ReturningClause.Columns {
+			if rc.Star.IsValid() {
+				if table, ok := g.tables[q.Table]; ok {
+					q.Columns = table.Columns
+				}
+				break
+			}
+		}
+	}
+}
+
+// parseUpdateStatement parses an UPDATE statement using the AST
+func (g *Generator) parseUpdateStatement(q *Query, s *sql.UpdateStatement) {
+	// Extract table name
+	if s.Table != nil && s.Table.Name != nil {
+		q.Table = s.Table.Name.Name
+	}
+
+	table := g.tables[q.Table]
+
+	// Extract SET clause parameters
+	for _, assign := range s.Assignments {
+		// Check if RHS is a bind parameter (?)
+		if _, ok := assign.Expr.(*sql.BindExpr); ok {
+			for _, col := range assign.Columns {
+				colName := col.Name
+				if table != nil {
+					for _, tableCol := range table.Columns {
+						if strings.EqualFold(tableCol.Name, colName) {
+							q.Params = append(q.Params, Param{
+								Name: tableCol.Name,
+								Type: g.sqliteTypeToSqlType(tableCol.Type, false),
+							})
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Extract WHERE clause parameters
+	if s.WhereExpr != nil {
+		g.extractExprParams(q, s.WhereExpr)
+	}
+
+	// Check for RETURNING clause
+	if s.ReturningClause != nil {
+		for _, rc := range s.ReturningClause.Columns {
+			if rc.Star.IsValid() {
+				if table, ok := g.tables[q.Table]; ok {
+					q.Columns = table.Columns
+				}
+				break
+			}
+		}
+	}
+}
+
+// parseDeleteStatement parses a DELETE statement using the AST
+func (g *Generator) parseDeleteStatement(q *Query, s *sql.DeleteStatement) {
+	// Extract table name
+	if s.Table != nil && s.Table.Name != nil {
+		q.Table = s.Table.Name.Name
+	}
+
+	// Extract WHERE clause parameters
+	if s.WhereExpr != nil {
+		g.extractExprParams(q, s.WhereExpr)
+	}
+}
+
+// extractExprParams extracts bind parameters from an expression
+func (g *Generator) extractExprParams(q *Query, expr sql.Expr) {
+	table := g.tables[q.Table]
+	if table == nil {
+		return
+	}
+
+	// Walk the expression tree to find column = ? patterns
+	g.walkExpr(expr, func(e sql.Expr) {
+		binExpr, ok := e.(*sql.BinaryExpr)
+		if !ok || binExpr.Op != sql.EQ {
+			return
+		}
+
+		// Check for column = ?
+		var colName string
+		if ident, ok := binExpr.X.(*sql.Ident); ok {
+			if _, ok := binExpr.Y.(*sql.BindExpr); ok {
+				colName = ident.Name
+			}
+		}
+		// Also check ? = column (reversed)
+		if ident, ok := binExpr.Y.(*sql.Ident); ok {
+			if _, ok := binExpr.X.(*sql.BindExpr); ok {
+				colName = ident.Name
+			}
+		}
+
+		if colName != "" {
 			for _, col := range table.Columns {
 				if strings.EqualFold(col.Name, colName) {
 					q.Params = append(q.Params, Param{
@@ -595,6 +487,32 @@ func (g *Generator) extractWhereParams(q *Query) {
 				}
 			}
 		}
+	})
+}
+
+// walkExpr walks an expression tree calling fn for each node
+func (g *Generator) walkExpr(expr sql.Expr, fn func(sql.Expr)) {
+	if expr == nil {
+		return
+	}
+
+	fn(expr)
+
+	switch e := expr.(type) {
+	case *sql.BinaryExpr:
+		g.walkExpr(e.X, fn)
+		g.walkExpr(e.Y, fn)
+	case *sql.UnaryExpr:
+		g.walkExpr(e.X, fn)
+	case *sql.ParenExpr:
+		g.walkExpr(e.X, fn)
+	case *sql.CaseExpr:
+		g.walkExpr(e.Operand, fn)
+		for _, blk := range e.Blocks {
+			g.walkExpr(blk.Condition, fn)
+			g.walkExpr(blk.Body, fn)
+		}
+		g.walkExpr(e.ElseExpr, fn)
 	}
 }
 
