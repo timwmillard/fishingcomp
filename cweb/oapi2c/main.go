@@ -28,25 +28,29 @@ type Config struct {
 	FieldStyle  string `yaml:"field-style"`
 	FuncStyle   string `yaml:"func-style"`
 	GenJSON     bool   `yaml:"gen-json"`
+	TypePrefix  string `yaml:"type-prefix"`
+	FuncPrefix  string `yaml:"func-prefix"`
 }
 
 // FieldInfo stores information about a struct field for JSON generation
 type FieldInfo struct {
-	JSONName   string // Original name from OpenAPI (used in JSON)
-	FieldName  string // C field name (styled)
-	CType      string // C type
-	IsArray    bool
-	IsRef      bool   // Is a reference to another struct
-	RefType    string // The referenced struct type (if IsRef)
-	IsString   bool
-	IsInt      bool
-	IsInt32    bool
-	IsFloat    bool
-	IsDouble   bool
-	IsBool     bool
-	IsEnum     bool   // Is an enum type
-	EnumType   string // The enum type name (if IsEnum)
-	CountField string // Name of the count field for arrays
+	JSONName      string // Original name from OpenAPI (used in JSON)
+	FieldName     string // C field name (styled)
+	CType         string // C type
+	IsArray       bool
+	IsRef         bool   // Is a reference to another struct
+	RefType       string // The referenced struct type (if IsRef)
+	RefSchemaName string // Original schema name for the reference (for function names)
+	IsString      bool
+	IsInt         bool
+	IsInt32       bool
+	IsFloat       bool
+	IsDouble      bool
+	IsBool        bool
+	IsEnum        bool   // Is an enum type
+	EnumType      string // The enum type name (if IsEnum)
+	EnumSchemaName string // Original schema name for the enum (for function names)
+	CountField    string // Name of the count field for arrays
 }
 
 // EnumInfo stores information about an enum for code generation
@@ -71,6 +75,8 @@ type Generator struct {
 	fieldStyle  NamingStyle
 	funcStyle   NamingStyle
 	genJSON     bool
+	typePrefix  string       // Prefix for type names (structs, enums)
+	funcPrefix  string       // Prefix for function names
 	structs     []StructInfo // Collected struct info for JSON generation
 	enums       []EnumInfo   // Collected enum info for JSON generation
 }
@@ -137,6 +143,12 @@ func main() {
 		if fileCfg.GenJSON {
 			cfg.GenJSON = true
 		}
+		if fileCfg.TypePrefix != "" {
+			cfg.TypePrefix = fileCfg.TypePrefix
+		}
+		if fileCfg.FuncPrefix != "" {
+			cfg.FuncPrefix = fileCfg.FuncPrefix
+		}
 	}
 
 	// Define flags with config values as defaults
@@ -147,6 +159,8 @@ func main() {
 	fieldStyle := flag.String("field-style", cfg.FieldStyle, "Naming style for fields: snake, camel, pascal")
 	funcStyle := flag.String("func-style", cfg.FuncStyle, "Naming style for functions: snake, camel, pascal")
 	genJSON := flag.Bool("gen-json", cfg.GenJSON, "Generate JSON marshal/unmarshal functions")
+	typePrefix := flag.String("type-prefix", cfg.TypePrefix, "Prefix for type names (structs, enums)")
+	funcPrefix := flag.String("func-prefix", cfg.FuncPrefix, "Prefix for function names")
 	flag.Parse()
 
 	// Suppress unused warning
@@ -170,6 +184,8 @@ func main() {
 		fieldStyle:  NamingStyle(*fieldStyle),
 		funcStyle:   NamingStyle(*funcStyle),
 		genJSON:     *genJSON,
+		typePrefix:  *typePrefix,
+		funcPrefix:  *funcPrefix,
 	}
 
 	gen.generate(*output)
@@ -250,7 +266,7 @@ func (g *Generator) generateForwardDeclarations() {
 	for _, name := range names {
 		schema := g.doc.Components.Schemas[name]
 		if schema.Value != nil && schema.Value.Type.Is("object") {
-			structName := g.applyStyle(name, g.structStyle)
+			structName := g.typeName(name)
 			g.out.WriteString(fmt.Sprintf("typedef struct %s %s;\n", structName, structName))
 		}
 	}
@@ -272,7 +288,7 @@ func (g *Generator) generateEnums() {
 }
 
 func (g *Generator) generateEnum(name string, schema *openapi3.Schema) {
-	enumName := g.applyStyle(name, g.structStyle)
+	enumName := g.typeName(name)
 
 	// Schema description as comment
 	if schema.Description != "" {
@@ -345,7 +361,7 @@ func (g *Generator) generateStructs() {
 }
 
 func (g *Generator) generateStruct(name string, schema *openapi3.Schema) {
-	structName := g.applyStyle(name, g.structStyle)
+	structName := g.typeName(name)
 
 	// Schema description as comment
 	if schema.Description != "" {
@@ -387,25 +403,28 @@ func (g *Generator) generateField(propName string, propRef *openapi3.SchemaRef) 
 	// Check if it's a $ref to another schema
 	if propRef.Ref != "" {
 		refType := g.resolveRefType(propRef.Ref)
+		schemaName := g.extractSchemaName(propRef.Ref)
 		// Check if it's an enum reference
 		if g.isEnumRef(propRef.Ref) {
 			g.out.WriteString(fmt.Sprintf("    %s %s;\n", refType, fieldName))
 			return []FieldInfo{{
-				JSONName:  propName,
-				FieldName: fieldName,
-				CType:     refType,
-				IsEnum:    true,
-				EnumType:  refType,
+				JSONName:       propName,
+				FieldName:      fieldName,
+				CType:          refType,
+				IsEnum:         true,
+				EnumType:       refType,
+				EnumSchemaName: schemaName,
 			}}
 		}
 		// It's a struct reference
 		g.out.WriteString(fmt.Sprintf("    %s *%s;\n", refType, fieldName))
 		return []FieldInfo{{
-			JSONName:  propName,
-			FieldName: fieldName,
-			CType:     refType + "*",
-			IsRef:     true,
-			RefType:   refType,
+			JSONName:      propName,
+			FieldName:     fieldName,
+			CType:         refType + "*",
+			IsRef:         true,
+			RefType:       refType,
+			RefSchemaName: schemaName,
 		}}
 	}
 
@@ -474,20 +493,25 @@ func (g *Generator) generateArrayField(propName, fieldName string, schema *opena
 	var itemType string
 	var isRef bool
 	var refType string
+	var refSchemaName string
 	var isEnum bool
 	var enumType string
+	var enumSchemaName string
 	var isString, isInt, isInt32, isFloat, isDouble, isBool bool
 
 	if schema.Items != nil {
 		if schema.Items.Ref != "" {
 			itemType = g.resolveRefType(schema.Items.Ref)
+			schemaName := g.extractSchemaName(schema.Items.Ref)
 			// Check if it's an enum reference
 			if g.isEnumRef(schema.Items.Ref) {
 				isEnum = true
 				enumType = itemType
+				enumSchemaName = schemaName
 			} else {
 				isRef = true
 				refType = itemType
+				refSchemaName = schemaName
 			}
 		} else if schema.Items.Value != nil {
 			itemSchema := schema.Items.Value
@@ -528,21 +552,23 @@ func (g *Generator) generateArrayField(propName, fieldName string, schema *opena
 	g.out.WriteString(fmt.Sprintf("    size_t %s;\n", countFieldName))
 
 	return []FieldInfo{{
-		JSONName:   propName,
-		FieldName:  fieldName,
-		CType:      itemType + "*",
-		IsArray:    true,
-		IsRef:      isRef,
-		RefType:    refType,
-		IsEnum:     isEnum,
-		EnumType:   enumType,
-		IsString:   isString,
-		IsInt:      isInt,
-		IsInt32:    isInt32,
-		IsFloat:    isFloat,
-		IsDouble:   isDouble,
-		IsBool:     isBool,
-		CountField: countFieldName,
+		JSONName:       propName,
+		FieldName:      fieldName,
+		CType:          itemType + "*",
+		IsArray:        true,
+		IsRef:          isRef,
+		RefType:        refType,
+		RefSchemaName:  refSchemaName,
+		IsEnum:         isEnum,
+		EnumType:       enumType,
+		EnumSchemaName: enumSchemaName,
+		IsString:       isString,
+		IsInt:          isInt,
+		IsInt32:        isInt32,
+		IsFloat:        isFloat,
+		IsDouble:       isDouble,
+		IsBool:         isBool,
+		CountField:     countFieldName,
 	}}
 }
 
@@ -550,9 +576,17 @@ func (g *Generator) resolveRefType(ref string) string {
 	parts := strings.Split(ref, "/")
 	if len(parts) > 0 {
 		schemaName := parts[len(parts)-1]
-		return g.applyStyle(schemaName, g.structStyle)
+		return g.typeName(schemaName)
 	}
 	return "void"
+}
+
+func (g *Generator) extractSchemaName(ref string) string {
+	parts := strings.Split(ref, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return ""
 }
 
 func (g *Generator) openAPITypeToCType(schemaRef *openapi3.SchemaRef) string {
@@ -618,19 +652,19 @@ func (g *Generator) openAPITypeToCType(schemaRef *openapi3.SchemaRef) string {
 func (g *Generator) generateJSONDeclarations() {
 	// Enum string conversion functions
 	for _, e := range g.enums {
-		funcPrefix := g.applyStyle(e.Name, g.funcStyle)
+		funcName := g.funcName(e.Name)
 		g.out.WriteString(fmt.Sprintf("// String conversion for %s\n", e.EnumName))
-		g.out.WriteString(fmt.Sprintf("const char *%s_to_string(%s val);\n", funcPrefix, e.EnumName))
-		g.out.WriteString(fmt.Sprintf("%s %s_from_string(const char *str);\n\n", e.EnumName, funcPrefix))
+		g.out.WriteString(fmt.Sprintf("const char *%s_to_string(%s val);\n", funcName, e.EnumName))
+		g.out.WriteString(fmt.Sprintf("%s %s_from_string(const char *str);\n\n", e.EnumName, funcName))
 	}
 
 	// Struct JSON functions
 	for _, s := range g.structs {
-		funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+		funcName := g.funcName(s.Name)
 		g.out.WriteString(fmt.Sprintf("// JSON serialization for %s\n", s.StructName))
-		g.out.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj);\n", funcPrefix, s.StructName))
-		g.out.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj);\n", funcPrefix, s.StructName))
-		g.out.WriteString(fmt.Sprintf("void %s_free(%s *obj);\n\n", funcPrefix, s.StructName))
+		g.out.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj);\n", funcName, s.StructName))
+		g.out.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj);\n", funcName, s.StructName))
+		g.out.WriteString(fmt.Sprintf("void %s_free(%s *obj);\n\n", funcName, s.StructName))
 	}
 }
 
@@ -653,9 +687,9 @@ func (g *Generator) generateJSONImplementation(headerFile string) {
 	// Generate forward declarations
 	g.jsonOut.WriteString("// Forward declarations\n")
 	for _, s := range g.structs {
-		funcPrefix := g.applyStyle(s.Name, g.funcStyle)
-		g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj);\n", funcPrefix, s.StructName))
-		g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj);\n", funcPrefix, s.StructName))
+		funcName := g.funcName(s.Name)
+		g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj);\n", funcName, s.StructName))
+		g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj);\n", funcName, s.StructName))
 	}
 	g.jsonOut.WriteString("\n")
 
@@ -667,8 +701,8 @@ func (g *Generator) generateJSONImplementation(headerFile string) {
 }
 
 func (g *Generator) generateEnumToString(e EnumInfo) {
-	funcPrefix := g.applyStyle(e.Name, g.funcStyle)
-	g.jsonOut.WriteString(fmt.Sprintf("const char *%s_to_string(%s val) {\n", funcPrefix, e.EnumName))
+	funcName := g.funcName(e.Name)
+	g.jsonOut.WriteString(fmt.Sprintf("const char *%s_to_string(%s val) {\n", funcName, e.EnumName))
 	g.jsonOut.WriteString("    switch (val) {\n")
 	for _, value := range e.Values {
 		constName := g.enumConstantName(e.EnumName, value)
@@ -680,8 +714,8 @@ func (g *Generator) generateEnumToString(e EnumInfo) {
 }
 
 func (g *Generator) generateEnumFromString(e EnumInfo) {
-	funcPrefix := g.applyStyle(e.Name, g.funcStyle)
-	g.jsonOut.WriteString(fmt.Sprintf("%s %s_from_string(const char *str) {\n", e.EnumName, funcPrefix))
+	funcName := g.funcName(e.Name)
+	g.jsonOut.WriteString(fmt.Sprintf("%s %s_from_string(const char *str) {\n", e.EnumName, funcName))
 	g.jsonOut.WriteString("    if (str == NULL) return 0;\n")
 	for _, value := range e.Values {
 		constName := g.enumConstantName(e.EnumName, value)
@@ -889,10 +923,10 @@ static int write_escaped(char *buf, size_t size, const char *str) {
 }
 
 func (g *Generator) generateStructToJSON(s StructInfo) {
-	funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+	funcName := g.funcName(s.Name)
 
 	// Internal write function (returns bytes written)
-	g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj) {\n", funcPrefix, s.StructName))
+	g.jsonOut.WriteString(fmt.Sprintf("static int %s_write(char *buf, size_t size, %s *obj) {\n", funcName, s.StructName))
 	g.jsonOut.WriteString("    if (obj == NULL) return snprintf(buf, size, \"null\");\n")
 	g.jsonOut.WriteString("    int len = 0;\n")
 	g.jsonOut.WriteString("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"{\");\n")
@@ -909,11 +943,11 @@ func (g *Generator) generateStructToJSON(s StructInfo) {
 			g.jsonOut.WriteString("        if (i > 0) len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \",\");\n")
 
 			if f.IsRef {
-				refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
-				g.jsonOut.WriteString(fmt.Sprintf("        len += %s_write(buf + len, size > (size_t)len ? size - len : 0, &obj->%s[i]);\n", refFuncPrefix, f.FieldName))
+				refFuncName := g.funcName(f.RefSchemaName)
+				g.jsonOut.WriteString(fmt.Sprintf("        len += %s_write(buf + len, size > (size_t)len ? size - len : 0, &obj->%s[i]);\n", refFuncName, f.FieldName))
 			} else if f.IsEnum {
-				enumFuncPrefix := g.applyStyle(f.EnumType, g.funcStyle)
-				g.jsonOut.WriteString(fmt.Sprintf("        len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, %s_to_string(obj->%s[i]));\n", enumFuncPrefix, f.FieldName))
+				enumFuncName := g.funcName(f.EnumSchemaName)
+				g.jsonOut.WriteString(fmt.Sprintf("        len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, %s_to_string(obj->%s[i]));\n", enumFuncName, f.FieldName))
 			} else if f.IsString {
 				g.jsonOut.WriteString(fmt.Sprintf("        len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, obj->%s[i]);\n", f.FieldName))
 			} else if f.IsInt {
@@ -927,13 +961,13 @@ func (g *Generator) generateStructToJSON(s StructInfo) {
 			g.jsonOut.WriteString("    }\n")
 			g.jsonOut.WriteString("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"]\");\n")
 		} else if f.IsEnum {
-			enumFuncPrefix := g.applyStyle(f.EnumType, g.funcStyle)
+			enumFuncName := g.funcName(f.EnumSchemaName)
 			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
-			g.jsonOut.WriteString(fmt.Sprintf("    len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, %s_to_string(obj->%s));\n", enumFuncPrefix, f.FieldName))
+			g.jsonOut.WriteString(fmt.Sprintf("    len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, %s_to_string(obj->%s));\n", enumFuncName, f.FieldName))
 		} else if f.IsRef {
-			refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+			refFuncName := g.funcName(f.RefSchemaName)
 			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
-			g.jsonOut.WriteString(fmt.Sprintf("    len += %s_write(buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", refFuncPrefix, f.FieldName))
+			g.jsonOut.WriteString(fmt.Sprintf("    len += %s_write(buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", refFuncName, f.FieldName))
 		} else if f.IsString {
 			g.jsonOut.WriteString(fmt.Sprintf("    len += snprintf(buf + len, size > (size_t)len ? size - len : 0, \"%s\\\"%s\\\":\");\n", comma, f.JSONName))
 			g.jsonOut.WriteString(fmt.Sprintf("    len += write_escaped(buf + len, size > (size_t)len ? size - len : 0, obj->%s);\n", f.FieldName))
@@ -951,20 +985,20 @@ func (g *Generator) generateStructToJSON(s StructInfo) {
 	g.jsonOut.WriteString("}\n\n")
 
 	// Public function
-	g.jsonOut.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj) {\n", funcPrefix, s.StructName))
-	g.jsonOut.WriteString(fmt.Sprintf("    int len = %s_write(NULL, 0, obj);\n", funcPrefix))
+	g.jsonOut.WriteString(fmt.Sprintf("char *%s_to_json(%s *obj) {\n", funcName, s.StructName))
+	g.jsonOut.WriteString(fmt.Sprintf("    int len = %s_write(NULL, 0, obj);\n", funcName))
 	g.jsonOut.WriteString("    char *buf = malloc(len + 1);\n")
 	g.jsonOut.WriteString("    if (buf == NULL) return NULL;\n")
-	g.jsonOut.WriteString(fmt.Sprintf("    %s_write(buf, len + 1, obj);\n", funcPrefix))
+	g.jsonOut.WriteString(fmt.Sprintf("    %s_write(buf, len + 1, obj);\n", funcName))
 	g.jsonOut.WriteString("    return buf;\n")
 	g.jsonOut.WriteString("}\n\n")
 }
 
 func (g *Generator) generateStructFromJSON(s StructInfo) {
-	funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+	funcName := g.funcName(s.Name)
 
 	// Internal parse function
-	g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj) {\n", funcPrefix, s.StructName))
+	g.jsonOut.WriteString(fmt.Sprintf("static const char *%s_parse(const char *json, %s *obj) {\n", funcName, s.StructName))
 	g.jsonOut.WriteString("    if (json == NULL || obj == NULL) return NULL;\n")
 	g.jsonOut.WriteString("    memset(obj, 0, sizeof(*obj));\n")
 	g.jsonOut.WriteString("    const char *p;\n")
@@ -981,19 +1015,19 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 
 			if f.IsRef {
 				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, f.RefType))
-				refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+				refFuncName := g.funcName(f.RefSchemaName)
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
-				g.jsonOut.WriteString(fmt.Sprintf("                %s_parse(elem, &obj->%s[i]);\n", refFuncPrefix, f.FieldName))
+				g.jsonOut.WriteString(fmt.Sprintf("                %s_parse(elem, &obj->%s[i]);\n", refFuncName, f.FieldName))
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
 			} else if f.IsEnum {
 				g.jsonOut.WriteString(fmt.Sprintf("            obj->%s = calloc(count, sizeof(%s));\n", f.FieldName, f.EnumType))
-				enumFuncPrefix := g.applyStyle(f.EnumType, g.funcStyle)
+				enumFuncName := g.funcName(f.EnumSchemaName)
 				g.jsonOut.WriteString("            const char *elem = array_first(p);\n")
 				g.jsonOut.WriteString("            for (size_t i = 0; i < count && elem; i++) {\n")
 				g.jsonOut.WriteString("                char *str = parse_string(elem, &elem);\n")
-				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = %s_from_string(str);\n", f.FieldName, enumFuncPrefix))
+				g.jsonOut.WriteString(fmt.Sprintf("                obj->%s[i] = %s_from_string(str);\n", f.FieldName, enumFuncName))
 				g.jsonOut.WriteString("                free(str);\n")
 				g.jsonOut.WriteString("                elem = array_next(elem);\n")
 				g.jsonOut.WriteString("            }\n")
@@ -1039,14 +1073,14 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 			}
 			g.jsonOut.WriteString("        }\n")
 		} else if f.IsEnum {
-			enumFuncPrefix := g.applyStyle(f.EnumType, g.funcStyle)
+			enumFuncName := g.funcName(f.EnumSchemaName)
 			g.jsonOut.WriteString("        char *str = parse_string(p, &p);\n")
-			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = %s_from_string(str);\n", f.FieldName, enumFuncPrefix))
+			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = %s_from_string(str);\n", f.FieldName, enumFuncName))
 			g.jsonOut.WriteString("        free(str);\n")
 		} else if f.IsRef {
-			refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
+			refFuncName := g.funcName(f.RefSchemaName)
 			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = calloc(1, sizeof(%s));\n", f.FieldName, f.RefType))
-			g.jsonOut.WriteString(fmt.Sprintf("        if (obj->%s) %s_parse(p, obj->%s);\n", f.FieldName, refFuncPrefix, f.FieldName))
+			g.jsonOut.WriteString(fmt.Sprintf("        if (obj->%s) %s_parse(p, obj->%s);\n", f.FieldName, refFuncName, f.FieldName))
 		} else if f.IsString {
 			g.jsonOut.WriteString(fmt.Sprintf("        obj->%s = parse_string(p, &p);\n", f.FieldName))
 		} else if f.IsInt {
@@ -1070,29 +1104,29 @@ func (g *Generator) generateStructFromJSON(s StructInfo) {
 	g.jsonOut.WriteString("}\n\n")
 
 	// Public function
-	g.jsonOut.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj) {\n", funcPrefix, s.StructName))
-	g.jsonOut.WriteString(fmt.Sprintf("    return %s_parse(json, obj) != NULL ? 0 : -1;\n", funcPrefix))
+	g.jsonOut.WriteString(fmt.Sprintf("int %s_from_json(const char *json, %s *obj) {\n", funcName, s.StructName))
+	g.jsonOut.WriteString(fmt.Sprintf("    return %s_parse(json, obj) != NULL ? 0 : -1;\n", funcName))
 	g.jsonOut.WriteString("}\n\n")
 }
 
 func (g *Generator) generateStructFree(s StructInfo) {
-	funcPrefix := g.applyStyle(s.Name, g.funcStyle)
+	funcName := g.funcName(s.Name)
 
-	g.jsonOut.WriteString(fmt.Sprintf("void %s_free(%s *obj) {\n", funcPrefix, s.StructName))
+	g.jsonOut.WriteString(fmt.Sprintf("void %s_free(%s *obj) {\n", funcName, s.StructName))
 	g.jsonOut.WriteString("    if (obj == NULL) return;\n")
 
 	for _, f := range s.Fields {
 		if f.IsArray {
 			if f.IsRef {
-				refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
-				g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) %s_free(&obj->%s[i]);\n", f.CountField, refFuncPrefix, f.FieldName))
+				refFuncName := g.funcName(f.RefSchemaName)
+				g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) %s_free(&obj->%s[i]);\n", f.CountField, refFuncName, f.FieldName))
 			} else if f.IsString {
 				g.jsonOut.WriteString(fmt.Sprintf("    for (size_t i = 0; i < obj->%s; i++) free(obj->%s[i]);\n", f.CountField, f.FieldName))
 			}
 			g.jsonOut.WriteString(fmt.Sprintf("    free(obj->%s);\n", f.FieldName))
 		} else if f.IsRef {
-			refFuncPrefix := g.applyStyle(f.RefType, g.funcStyle)
-			g.jsonOut.WriteString(fmt.Sprintf("    if (obj->%s) { %s_free(obj->%s); free(obj->%s); }\n", f.FieldName, refFuncPrefix, f.FieldName, f.FieldName))
+			refFuncName := g.funcName(f.RefSchemaName)
+			g.jsonOut.WriteString(fmt.Sprintf("    if (obj->%s) { %s_free(obj->%s); free(obj->%s); }\n", f.FieldName, refFuncName, f.FieldName, f.FieldName))
 		} else if f.IsString {
 			g.jsonOut.WriteString(fmt.Sprintf("    free(obj->%s);\n", f.FieldName))
 		}
@@ -1163,7 +1197,11 @@ func (g *Generator) operationToFuncName(method, path string, op *openapi3.Operat
 		name = method + "_" + pathPart
 	}
 
-	return g.applyStyle(name, g.funcStyle)
+	styled := g.applyStyle(name, g.funcStyle)
+	if g.funcPrefix != "" {
+		return g.funcPrefix + styled
+	}
+	return styled
 }
 
 // Helper functions
@@ -1197,6 +1235,22 @@ func (g *Generator) applyStyle(s string, style NamingStyle) string {
 	default:
 		return s
 	}
+}
+
+func (g *Generator) typeName(name string) string {
+	styled := g.applyStyle(name, g.structStyle)
+	if g.typePrefix != "" {
+		return g.typePrefix + styled
+	}
+	return styled
+}
+
+func (g *Generator) funcName(name string) string {
+	styled := g.applyStyle(name, g.funcStyle)
+	if g.funcPrefix != "" {
+		return g.funcPrefix + styled
+	}
+	return styled
 }
 
 func toPascalCase(s string) string {

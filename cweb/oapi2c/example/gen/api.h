@@ -15,25 +15,25 @@ typedef struct Res Res;
 
 // Status of a catch verification
 typedef enum {
-    CATCH_STATUS_PENDING,
-    CATCH_STATUS_VERIFIED,
-    CATCH_STATUS_DISPUTED,
-    CATCH_STATUS_REJECTED
-} CatchStatus;
+    API_CATCH_STATUS_PENDING,
+    API_CATCH_STATUS_VERIFIED,
+    API_CATCH_STATUS_DISPUTED,
+    API_CATCH_STATUS_REJECTED
+} api_CatchStatus;
 
 // Struct forward declarations
-typedef struct Boat Boat;
-typedef struct Catch Catch;
-typedef struct Competitor Competitor;
-typedef struct LeaderboardEntry LeaderboardEntry;
-typedef struct Species Species;
+typedef struct api_Boat api_Boat;
+typedef struct api_Catch api_Catch;
+typedef struct api_Competitor api_Competitor;
+typedef struct api_LeaderboardEntry api_LeaderboardEntry;
+typedef struct api_Species api_Species;
 
 // ============ Structs ============
 
 // A registered fishing boat
-struct Boat {
+struct api_Boat {
     // List of crew members
-    Competitor *crew;
+    api_Competitor *crew;
     size_t crew_count;
     // Unique identifier for the boat
     int64_t id;
@@ -44,7 +44,7 @@ struct Boat {
 };
 
 // A recorded catch in the competition
-struct Catch {
+struct api_Catch {
     // Timestamp when the fish was caught
     char* caught_at;
     // ID of the competitor who made the catch
@@ -59,9 +59,9 @@ struct Catch {
     // Points awarded for this catch
     double points;
     // A fish species that can be caught
-    Species *species;
+    api_Species *species;
     // Status of a catch verification
-    CatchStatus status;
+    api_CatchStatus status;
     // Whether the catch has been verified by officials
     bool verified;
     // Weight of the catch in kilograms
@@ -69,11 +69,11 @@ struct Catch {
 };
 
 // A competitor in the fishing competition
-struct Competitor {
+struct api_Competitor {
     // A registered fishing boat
-    Boat *boat;
+    api_Boat *boat;
     // List of catches made by this competitor
-    Catch *catches;
+    api_Catch *catches;
     size_t catches_count;
     // Timestamp when the competitor was registered
     char* created_at;
@@ -86,9 +86,9 @@ struct Competitor {
 };
 
 // An entry in the competition leaderboard
-struct LeaderboardEntry {
+struct api_LeaderboardEntry {
     // A competitor in the fishing competition
-    Competitor *competitor;
+    api_Competitor *competitor;
     // Current ranking position
     int32_t rank;
     // Total number of catches
@@ -100,7 +100,7 @@ struct LeaderboardEntry {
 };
 
 // A fish species that can be caught
-struct Species {
+struct api_Species {
     // Unique identifier for the species
     int64_t id;
     // Minimum legal size in centimeters
@@ -118,72 +118,72 @@ struct Species {
 
 // ============ JSON Functions ============
 
-// String conversion for CatchStatus
-const char *catch_status_to_string(CatchStatus val);
-CatchStatus catch_status_from_string(const char *str);
+// String conversion for api_CatchStatus
+const char *api_catch_status_to_string(api_CatchStatus val);
+api_CatchStatus api_catch_status_from_string(const char *str);
 
-// JSON serialization for Boat
-char *boat_to_json(Boat *obj);
-int boat_from_json(const char *json, Boat *obj);
-void boat_free(Boat *obj);
+// JSON serialization for api_Boat
+char *api_boat_to_json(api_Boat *obj);
+int api_boat_from_json(const char *json, api_Boat *obj);
+void api_boat_free(api_Boat *obj);
 
-// JSON serialization for Catch
-char *catch_to_json(Catch *obj);
-int catch_from_json(const char *json, Catch *obj);
-void catch_free(Catch *obj);
+// JSON serialization for api_Catch
+char *api_catch_to_json(api_Catch *obj);
+int api_catch_from_json(const char *json, api_Catch *obj);
+void api_catch_free(api_Catch *obj);
 
-// JSON serialization for Competitor
-char *competitor_to_json(Competitor *obj);
-int competitor_from_json(const char *json, Competitor *obj);
-void competitor_free(Competitor *obj);
+// JSON serialization for api_Competitor
+char *api_competitor_to_json(api_Competitor *obj);
+int api_competitor_from_json(const char *json, api_Competitor *obj);
+void api_competitor_free(api_Competitor *obj);
 
-// JSON serialization for LeaderboardEntry
-char *leaderboard_entry_to_json(LeaderboardEntry *obj);
-int leaderboard_entry_from_json(const char *json, LeaderboardEntry *obj);
-void leaderboard_entry_free(LeaderboardEntry *obj);
+// JSON serialization for api_LeaderboardEntry
+char *api_leaderboard_entry_to_json(api_LeaderboardEntry *obj);
+int api_leaderboard_entry_from_json(const char *json, api_LeaderboardEntry *obj);
+void api_leaderboard_entry_free(api_LeaderboardEntry *obj);
 
-// JSON serialization for Species
-char *species_to_json(Species *obj);
-int species_from_json(const char *json, Species *obj);
-void species_free(Species *obj);
+// JSON serialization for api_Species
+char *api_species_to_json(api_Species *obj);
+int api_species_from_json(const char *json, api_Species *obj);
+void api_species_free(api_Species *obj);
 
 // ============ Handlers ============
 
 // GET /boats - List all boats
-void get_boats(Req *req, Res *res);
+void api_get_boats(Req *req, Res *res);
 
 // POST /boats - Create a boat
-void create_boat(Req *req, Res *res);
+void api_create_boat(Req *req, Res *res);
 
 // GET /boats/{id} - Get a boat by ID
-void get_boat(Req *req, Res *res);
+void api_get_boat(Req *req, Res *res);
 
 // GET /catches - List all catches
-void get_catches(Req *req, Res *res);
+void api_get_catches(Req *req, Res *res);
 
 // POST /catches - Record a catch
-void create_catch(Req *req, Res *res);
+void api_create_catch(Req *req, Res *res);
 
 // GET /competitors - List all competitors
-void get_competitors(Req *req, Res *res);
+void api_get_competitors(Req *req, Res *res);
 
 // POST /competitors - Create a competitor
-void create_competitor(Req *req, Res *res);
+void api_create_competitor(Req *req, Res *res);
 
 // GET /competitors/{id} - Get a competitor by ID
-void get_competitor(Req *req, Res *res);
+void api_get_competitor(Req *req, Res *res);
 
 // PUT /competitors/{id} - Update a competitor
-void update_competitor(Req *req, Res *res);
+void api_update_competitor(Req *req, Res *res);
 
 // DELETE /competitors/{id} - Delete a competitor
-void delete_competitor(Req *req, Res *res);
+void api_delete_competitor(Req *req, Res *res);
 
 // GET /leaderboard - Get competition leaderboard
-void get_leaderboard(Req *req, Res *res);
+void api_get_leaderboard(Req *req, Res *res);
 
 // GET /species - List all species
-void get_species(Req *req, Res *res);
+void api_get_species(Req *req, Res *res);
 
 
 #endif // API_H

@@ -5,3 +5,5 @@ struct-style: pascal
 field-style: snake
 func-style: snake
 gen-json: true
+type-prefix: api_
+func-prefix: api_

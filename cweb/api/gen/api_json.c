@@ -200,10 +200,10 @@ static int write_escaped(char *buf, size_t size, const char *str) {
 }
 
 // Forward declarations
-static const char *competitor_parse(const char *json, Competitor *obj);
-static int competitor_write(char *buf, size_t size, Competitor *obj);
+static const char *api_competitor_parse(const char *json, api_Competitor *obj);
+static int api_competitor_write(char *buf, size_t size, api_Competitor *obj);
 
-static int competitor_write(char *buf, size_t size, Competitor *obj) {
+static int api_competitor_write(char *buf, size_t size, api_Competitor *obj) {
     if (obj == NULL) return snprintf(buf, size, "null");
     int len = 0;
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "{");
@@ -216,15 +216,15 @@ static int competitor_write(char *buf, size_t size, Competitor *obj) {
     return len;
 }
 
-char *competitor_to_json(Competitor *obj) {
-    int len = competitor_write(NULL, 0, obj);
+char *api_competitor_to_json(api_Competitor *obj) {
+    int len = api_competitor_write(NULL, 0, obj);
     char *buf = malloc(len + 1);
     if (buf == NULL) return NULL;
-    competitor_write(buf, len + 1, obj);
+    api_competitor_write(buf, len + 1, obj);
     return buf;
 }
 
-static const char *competitor_parse(const char *json, Competitor *obj) {
+static const char *api_competitor_parse(const char *json, api_Competitor *obj) {
     if (json == NULL || obj == NULL) return NULL;
     memset(obj, 0, sizeof(*obj));
     const char *p;
@@ -248,11 +248,11 @@ static const char *competitor_parse(const char *json, Competitor *obj) {
     return skip_value(json);
 }
 
-int competitor_from_json(const char *json, Competitor *obj) {
-    return competitor_parse(json, obj) != NULL ? 0 : -1;
+int api_competitor_from_json(const char *json, api_Competitor *obj) {
+    return api_competitor_parse(json, obj) != NULL ? 0 : -1;
 }
 
-void competitor_free(Competitor *obj) {
+void api_competitor_free(api_Competitor *obj) {
     if (obj == NULL) return;
     free(obj->first_name);
     free(obj->last_name);
