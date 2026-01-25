@@ -5,7 +5,7 @@
 #include "queries.h"
 
 // GetCompetitor :one
-int get_competitor(sqlite3 *db, sql_int64 Id, void (*cb)(Competitor*, void*), void *ctx) {
+int get_competitor(sqlite3 *db, sql_int64 id, void (*cb)(Competitor*, void*), void *ctx) {
     const char *sql = "select id, first_name, last_name\n"
                       "from competitor\n"
                       "where id = ?;\n";
@@ -13,7 +13,7 @@ int get_competitor(sqlite3 *db, sql_int64 Id, void (*cb)(Competitor*, void*), vo
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
 
-    sqlite3_bind_int64(stmt, 1, Id);
+    sqlite3_bind_int64(stmt, 1, id);
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
@@ -62,9 +62,9 @@ int create_competitor(sqlite3 *db, CreateCompetitorParams *params, void (*cb)(Co
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
 
-    sqlite3_bind_text(stmt, 1, (char*)params->FirstName.data, params->FirstName.len, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, (char*)params->LastName.data, params->LastName.len, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, (char*)params->Email.data, params->Email.len, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, (char*)params->first_name.data, params->first_name.len, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, (char*)params->last_name.data, params->last_name.len, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, (char*)params->email.data, params->email.len, SQLITE_STATIC);
 
     rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW) {
@@ -79,14 +79,14 @@ int create_competitor(sqlite3 *db, CreateCompetitorParams *params, void (*cb)(Co
 }
 
 // DeleteCompetitor :exec
-int delete_competitor(sqlite3 *db, sql_int64 Id) {
+int delete_competitor(sqlite3 *db, sql_int64 id) {
     const char *sql = "delete from competitor\n"
                       "where id = ?;\n";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) return rc;
 
-    sqlite3_bind_int64(stmt, 1, Id);
+    sqlite3_bind_int64(stmt, 1, id);
 
     rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);

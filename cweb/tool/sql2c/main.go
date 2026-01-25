@@ -68,6 +68,7 @@ type Generator struct {
 	queries     []Query
 	out         strings.Builder
 	implOut     strings.Builder
+	modelsOut   strings.Builder
 	structStyle NamingStyle
 	fieldStyle  NamingStyle
 	funcStyle   NamingStyle
@@ -217,6 +218,14 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("Generated %s\n", implFile)
+
+	// Write models file
+	modelsFile := filepath.Join(filepath.Dir(*output), "models.h")
+	if err := os.WriteFile(modelsFile, []byte(gen.modelsOut.String()), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing models: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Generated %s\n", modelsFile)
 }
 
 // parseSchema parses CREATE TABLE statements from schema.sql using the SQL parser
@@ -546,8 +555,98 @@ func (g *Generator) sqliteTypeToSqlType(sqliteType string, nullable bool) string
 
 // generate produces the C header and implementation files
 func (g *Generator) generate(outputFile string) {
+	g.generateModels()
 	g.generateHeader(outputFile)
 	g.generateImplementation(outputFile)
+}
+
+// generateModels produces the models.h file with base types and table structs
+func (g *Generator) generateModels() {
+	g.modelsOut.WriteString("// Generated from SQL - do not edit\n\n")
+	g.modelsOut.WriteString("#ifndef SQL_MODEL_H\n")
+	g.modelsOut.WriteString("#define SQL_MODEL_H\n\n")
+	g.modelsOut.WriteString("#include <stdint.h>\n")
+	g.modelsOut.WriteString("#include <stdbool.h>\n")
+	g.modelsOut.WriteString("#include <stddef.h>\n\n")
+
+	// Hardcoded base types
+	g.modelsOut.WriteString(`typedef unsigned char sql_byte;
+
+typedef double sql_double;
+
+typedef struct {
+    sql_double value;
+    bool null;
+} sql_nulldouble;
+
+typedef int sql_int;
+
+typedef struct {
+    sql_int value;
+    bool null;
+} sql_nullint;
+
+typedef int64_t sql_int64;
+
+typedef struct {
+    sql_int64 value;
+    bool null;
+} sql_nullint64;
+
+typedef double sql_numeric;
+
+typedef struct {
+    sql_numeric value;
+    bool null;
+} sql_nullnumeric;
+
+typedef bool sql_bool;
+
+typedef struct {
+    sql_bool value;
+    bool null;
+} sql_nullbool;
+
+typedef struct {
+    sql_byte *data;
+    size_t len;
+} sql_blob;
+
+typedef struct {
+    sql_byte *data;
+    size_t len;
+    bool null;
+} sql_nullblob;
+
+typedef struct {
+    sql_byte *data;
+    size_t len;
+} sql_text;
+
+typedef struct {
+    char *data;
+    size_t len;
+    bool null;
+} sql_nulltext;
+
+`)
+
+	// Generate table structs
+	g.modelsOut.WriteString("// ============ Table Structs ============\n\n")
+	for _, tableName := range g.sortedTableNames() {
+		table := g.tables[tableName]
+		structName := g.typeName(table.Name)
+
+		g.modelsOut.WriteString(fmt.Sprintf("typedef struct {\n"))
+		for _, col := range table.Columns {
+			fieldName := g.applyStyle(col.Name, g.fieldStyle)
+			fieldType := g.sqliteTypeToSqlType(col.Type, col.Nullable)
+			g.modelsOut.WriteString(fmt.Sprintf("    %s %s;\n", fieldType, fieldName))
+		}
+		g.modelsOut.WriteString(fmt.Sprintf("} %s;\n\n", structName))
+	}
+
+	g.modelsOut.WriteString("#endif // SQL_MODEL_H\n")
 }
 
 // generateHeader produces the .h file
