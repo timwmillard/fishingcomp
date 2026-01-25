@@ -502,24 +502,39 @@ func (g *Generator) parseUpdateQuery(q *Query) {
 	}
 
 	// Extract SET clause parameters
-	setRe := regexp.MustCompile(`(?i)set\s+(.*?)(?:where|returning|$)`)
+	// Find content between SET and WHERE/RETURNING
+	setRe := regexp.MustCompile(`(?is)set\s+(.*?)(?:\s+where|\s+returning|;|$)`)
 	if match := setRe.FindStringSubmatch(q.SQL); match != nil {
-		assignments := strings.Split(match[1], ",")
+		setClause := match[1]
+		assignments := strings.Split(setClause, ",")
 		table := g.tables[q.Table]
 
 		for _, assign := range assignments {
 			assign = strings.TrimSpace(assign)
+			if assign == "" {
+				continue
+			}
 			parts := strings.SplitN(assign, "=", 2)
-			if len(parts) == 2 && strings.TrimSpace(parts[1]) == "?" {
-				colName := strings.TrimSpace(parts[0])
-				if table != nil {
-					for _, col := range table.Columns {
-						if col.Name == colName {
-							q.Params = append(q.Params, Param{
-								Name: colName,
-								Type: g.sqliteTypeToSqlType(col.Type, false),
-							})
-							break
+			if len(parts) == 2 {
+				rhs := strings.TrimSpace(parts[1])
+				if rhs == "?" {
+					colName := strings.TrimSpace(parts[0])
+					// Clean column name
+					colName = strings.Map(func(r rune) rune {
+						if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' {
+							return r
+						}
+						return -1
+					}, colName)
+					if table != nil && colName != "" {
+						for _, col := range table.Columns {
+							if strings.EqualFold(col.Name, colName) {
+								q.Params = append(q.Params, Param{
+									Name: col.Name,
+									Type: g.sqliteTypeToSqlType(col.Type, false),
+								})
+								break
+							}
 						}
 					}
 				}
