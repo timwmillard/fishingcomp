@@ -1,0 +1,30 @@
+// Generated from SQL - do not edit
+
+#ifndef QUERIES_H
+#define QUERIES_H
+
+#include "sqlite3.h"
+
+#include "models.h"
+
+// ============ Param Structs ============
+
+typedef struct {
+    sql_text FirstName;
+    sql_text LastName;
+    sql_text Email;
+} CreateCompetitorParams;
+
+// ============ Query Functions ============
+
+// select id, first_name, last_name from competitor where id = ?;
+int get_competitor(sqlite3 *db, sql_int64 Id, void (*cb)(Competitor*, void*), void *ctx);
+// select id, first_name, last_name from competitor;
+int list_competitors(sqlite3 *db, void (*cb)(Competitor*, void*), void *ctx);
+// insert into competitor ( first_name, last_name, email ) values ( ?, ?, ?) returning id, first_name, last_name;
+int create_competitor(sqlite3 *db, CreateCompetitorParams *params, void (*cb)(Competitor*, void*), void *ctx);
+// delete from competitor where id = ?;
+int delete_competitor(sqlite3 *db, sql_int64 Id);
+
+
+#endif // QUERIES_H

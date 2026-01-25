@@ -8,6 +8,26 @@
 
 // ============ JSON Helper Functions ============
 
+// Allocator helpers - use allocator if provided, otherwise malloc/free
+static void *json_alloc(api_Allocator *alloc, size_t size) {
+    if (alloc && alloc->alloc) return alloc->alloc(alloc->ctx, size);
+    return malloc(size);
+}
+
+static void *json_calloc(api_Allocator *alloc, size_t count, size_t size) {
+    size_t total = count * size;
+    void *ptr = json_alloc(alloc, total);
+    if (ptr) memset(ptr, 0, total);
+    return ptr;
+}
+
+static void json_free(api_Allocator *alloc, void *ptr) {
+    if (ptr == NULL) return;
+    if (alloc && alloc->free) { alloc->free(alloc->ctx, ptr); return; }
+    if (alloc && alloc->alloc) return; // Arena without free - don't call free()
+    free(ptr);
+}
+
 static const char *skip_ws(const char *p) {
     while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') p++;
     return p;
@@ -85,7 +105,7 @@ static const char *find_key(const char *json, const char *key) {
     return NULL;
 }
 
-static char *parse_string(const char *p, const char **endp) {
+static char *parse_string(api_Allocator *alloc, const char *p, const char **endp) {
     p = skip_ws(p);
     if (*p != '"') { *endp = p; return NULL; }
     p++;
@@ -95,7 +115,7 @@ static char *parse_string(const char *p, const char **endp) {
         if (*p == '\\' && *(p+1)) { p += 2; len++; }
         else { p++; len++; }
     }
-    char *str = malloc(len + 1);
+    char *str = json_alloc(alloc, len + 1);
     if (!str) { *endp = p; return NULL; }
     const char *s = start;
     char *d = str;
@@ -200,10 +220,11 @@ static int write_escaped(char *buf, size_t size, const char *str) {
 }
 
 // Forward declarations
-static const char *competitor_parse(const char *json, api_Competitor *obj);
-static int competitor_write(char *buf, size_t size, api_Competitor *obj);
+static const char *api_competitor_parse(api_Allocator *alloc, const char *json, api_Competitor *obj);
+static int api_competitor_write(api_Allocator *alloc, char *buf, size_t size, api_Competitor *obj);
 
-static int competitor_write(char *buf, size_t size, api_Competitor *obj) {
+static int api_competitor_write(api_Allocator *alloc, char *buf, size_t size, api_Competitor *obj) {
+    (void)alloc; // unused in write, but kept for consistent signature
     if (obj == NULL) return snprintf(buf, size, "null");
     int len = 0;
     len += snprintf(buf + len, size > (size_t)len ? size - len : 0, "{");
@@ -216,15 +237,15 @@ static int competitor_write(char *buf, size_t size, api_Competitor *obj) {
     return len;
 }
 
-char *competitor_to_json(api_Competitor *obj) {
-    int len = competitor_write(NULL, 0, obj);
-    char *buf = malloc(len + 1);
+char *api_competitor_to_json(api_Allocator *alloc, api_Competitor *obj) {
+    int len = api_competitor_write(alloc, NULL, 0, obj);
+    char *buf = json_alloc(alloc, len + 1);
     if (buf == NULL) return NULL;
-    competitor_write(buf, len + 1, obj);
+    api_competitor_write(alloc, buf, len + 1, obj);
     return buf;
 }
 
-static const char *competitor_parse(const char *json, api_Competitor *obj) {
+static const char *api_competitor_parse(api_Allocator *alloc, const char *json, api_Competitor *obj) {
     if (json == NULL || obj == NULL) return NULL;
     memset(obj, 0, sizeof(*obj));
     const char *p;
@@ -232,7 +253,7 @@ static const char *competitor_parse(const char *json, api_Competitor *obj) {
 
     p = find_key(json, "first_name");
     if (p != NULL) {
-        obj->first_name = parse_string(p, &p);
+        obj->first_name = parse_string(alloc, p, &p);
     }
 
     p = find_key(json, "id");
@@ -242,19 +263,19 @@ static const char *competitor_parse(const char *json, api_Competitor *obj) {
 
     p = find_key(json, "last_name");
     if (p != NULL) {
-        obj->last_name = parse_string(p, &p);
+        obj->last_name = parse_string(alloc, p, &p);
     }
 
     return skip_value(json);
 }
 
-int competitor_from_json(const char *json, api_Competitor *obj) {
-    return competitor_parse(json, obj) != NULL ? 0 : -1;
+int api_competitor_from_json(api_Allocator *alloc, const char *json, api_Competitor *obj) {
+    return api_competitor_parse(alloc, json, obj) != NULL ? 0 : -1;
 }
 
-void competitor_free(api_Competitor *obj) {
+void api_competitor_free(api_Allocator *alloc, api_Competitor *obj) {
     if (obj == NULL) return;
-    free(obj->first_name);
-    free(obj->last_name);
+    json_free(alloc, obj->first_name);
+    json_free(alloc, obj->last_name);
 }
 

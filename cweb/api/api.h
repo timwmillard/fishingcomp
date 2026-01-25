@@ -11,6 +11,15 @@
 typedef struct Req Req;
 typedef struct Res Res;
 
+// ============ Allocator ============
+
+// Allocator interface - pass NULL to use malloc/free
+typedef struct {
+    void* (*alloc)(void *ctx, size_t size);
+    void  (*free)(void *ctx, void *ptr);  // Can be NULL for arenas
+    void *ctx;
+} api_Allocator;
+
 // ============ Enums ============
 
 // Struct forward declarations
@@ -31,9 +40,9 @@ struct api_Competitor {
 // ============ JSON Functions ============
 
 // JSON serialization for api_Competitor
-char *api_competitor_to_json(api_Competitor *obj);
-int api_competitor_from_json(const char *json, api_Competitor *obj);
-void api_competitor_free(api_Competitor *obj);
+char *api_competitor_to_json(api_Allocator *alloc, api_Competitor *obj);
+int api_competitor_from_json(api_Allocator *alloc, const char *json, api_Competitor *obj);
+void api_competitor_free(api_Allocator *alloc, api_Competitor *obj);
 
 // ============ Handlers ============
 
