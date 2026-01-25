@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
 typedef unsigned char sql_byte;
 
@@ -60,11 +61,26 @@ typedef struct {
     size_t len;
 } sql_text;
 
+static inline sql_text to_sql_text(char *text) {
+    return (sql_text){
+        .data = (sql_byte*)text,
+        .len = strlen(text),
+    };
+}
+
 typedef struct {
     char *data;
     size_t len;
     bool null;
 } sql_nulltext;
+
+static inline sql_nulltext to_sql_nulltext(char *text, bool null) {
+    return (sql_nulltext){
+        .data = text,
+        .len = strlen(text),
+        .null = null,
+    };
+}
 
 // ============ Table Structs ============
 

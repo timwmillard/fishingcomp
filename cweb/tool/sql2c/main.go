@@ -604,7 +604,8 @@ func (g *Generator) generateModels() {
 	g.modelsOut.WriteString("#define SQL_MODEL_H\n\n")
 	g.modelsOut.WriteString("#include <stdint.h>\n")
 	g.modelsOut.WriteString("#include <stdbool.h>\n")
-	g.modelsOut.WriteString("#include <stddef.h>\n\n")
+	g.modelsOut.WriteString("#include <stddef.h>\n")
+	g.modelsOut.WriteString("#include <string.h>\n\n")
 
 	// Hardcoded base types
 	g.modelsOut.WriteString(`typedef unsigned char sql_byte;
@@ -660,11 +661,26 @@ typedef struct {
     size_t len;
 } sql_text;
 
+static inline sql_text to_sql_text(char *text) {
+    return (sql_text){
+        .data = (sql_byte*)text,
+        .len = strlen(text),
+    };
+}
+
 typedef struct {
     char *data;
     size_t len;
     bool null;
 } sql_nulltext;
+
+static inline sql_nulltext to_sql_nulltext(char *text, bool null) {
+    return (sql_nulltext){
+        .data = text,
+        .len = strlen(text),
+        .null = null,
+    };
+}
 
 `)
 

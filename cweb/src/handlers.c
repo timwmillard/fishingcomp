@@ -81,164 +81,7 @@ void log_handle(Req *req, Res *res) {
 }
 
 
-// void get_competitor_res(Competitor *comp, void *data) {
-//     Res *res = data;
-//     char *body = arena_sprintf(res->arena, 
-//             "{\n"
-//             "  \"id\": %lld"",\n"
-//             "  \"first_name\": \"%s\",\n"
-//             "  \"last_name\": \"%s\"\n"
-//             "}\n",
-//             comp->ID, comp->FirstName.data, comp->LastName.data
-//     );
-//     send_json(res, OK, body);
-// }
-//
-// void get_competitor_v2(Req *req, Res *res) {
-//     const char *id_str = get_param(req, "id");
-//     int id = atoi(id_str);
-//
-//     slog_debug("Competitor getting",
-//             slog_int("id", id)
-//     );
-//
-//     Competitor comp;
-//     int rc = sql_GetCompetitor_cb(&sqlctx, id, get_competitor_res, res);
-//     if (rc != SQLITE_OK) {
-//         slog_error("Competitor not found",
-//                 slog_int("id", id)
-//         );
-//         send_json(res, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
-//         return;
-//     }
-//
-//     slog_info("Competitor get",
-//             slog_int("id", id)
-//     );
-// }
-//
-// void get_competitor_v1(Req *req, Res *res) {
-//     const char *id_str = get_param(req, "id");
-//     int id = atoi(id_str);
-//
-//     Competitor comp;
-//     int rc = sql_GetCompetitor(&sqlctx, id, &comp);
-//     switch (rc) {
-//         case SQLITE_OK: break;
-//         case SQLITE_NOTFOUND:
-//             slog_debug("Competitor not found",
-//                     slog_int("id", id),
-//                     slog_string("error", sqlite3_errstr(rc)),
-//                     slog_int("error_code", rc)
-//             );
-//             send_json(res, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
-//             return;
-//         default:
-//             slog_error("Competitor get error",
-//                     slog_int("id", id),
-//                     slog_string("error", sqlite3_errstr(rc)),
-//                     slog_int("error_code", rc)
-//             );
-//             send_json(res, INTERNAL_SERVER_ERROR, "{\"error\": \"something when wrong\"}\n");
-//             return;
-//     }
-//
-//     slog_debug("Competitor get",
-//             slog_int("id", id)
-//     );
-//
-//     char *res_body = arena_sprintf(res->arena, 
-//             "{\n"
-//             "  \"id\": %lld,\n"
-//             "  \"first_name\": \"%s\",\n"
-//             "  \"last_name\": \"%s\"\n"
-//             "}\n",
-//             comp.ID, comp.FirstName.data, comp.LastName.data
-//     );
-//     send_json(res, OK, res_body);
-// }
-//
-// void api_get_competitor_res(Competitor *comp, void *data) {
-//     Res *res = data;
-//
-//     slog_info("Competitor get",
-//             slog_int("id", comp->ID)
-//     );
-//     char *body = competitor_to_json(&(api_Competitor){
-//             .id = comp->ID,
-//             .first_name = (char*)comp->FirstName.data,
-//             .last_name = (char*)comp->LastName.data,
-//         });
-//     send_json(res, OK, body);
-// }
-
-// void sql2api_competitor(Competitor *comp, void *ctx) {
-//     api_Competitor *api = ctx;
-//     api->id = comp->ID;
-//     api->first_name = strdup((char*)comp->FirstName.data);  // TODO: better without strdup??
-//     api->last_name = strdup((char*)comp->LastName.data);
-// }
-//
-// // GET /competitors/{id} - Get a competitor by ID
-// void api_get_competitor(Req *req, Res *res) {
-//     const char *id_str = get_param(req, "id");
-//     int id = atoi(id_str);
-//
-//     slog_debug("Competitor getting",
-//             slog_int("id", id)
-//     );
-//
-//     Competitor comp;
-//     int rc = sql_GetCompetitor_cb(&sqlctx, id, api_get_competitor_res, res);
-//     if (rc != SQLITE_OK) {
-//         slog_error("Competitor not found",
-//                 slog_int("id", id)
-//         );
-//         send_json(res, NOT_FOUND, "{\"error\": \"competior not found\"}\n");
-//         return;
-//     }
-// }
-
-
-//
-// // POST /competitors - Create a competitor
-// void create_competitor_work(void *cx) {
-//     context *ctx = cx;
-//     slog_debug("Competitor creating");
-//     Req *req = ctx->req;
-//     Res *res = ctx->res;
-//
-//     api_Competitor body;
-//     int rc = competitor_from_json(req->body, &body);
-//     if (rc != 0) {
-//         slog_error("Competitor bad request");
-//         response(ctx, BAD_REQUEST, "{\"error\": \"malformed json\"}\n");
-//         return;
-//     }
-//
-//     api_Competitor result;
-//     rc = sql_CreateCompetitor_cb(&sqlctx, &(CreateCompetitorParams){
-//             .FirstName = to_sql_text(body.first_name),
-//             .LastName = to_sql_text(body.last_name),
-//             .Email = to_sql_text(""),
-//         }, sql2api_competitor, &result);
-//     if (rc != SQLITE_OK) {
-//         slog_error("Competitor create failed");
-//         response(ctx, INTERNAL_SERVER_ERROR, "{\"error\": \"create competior failed\"}\n");
-//         return;
-//     }
-//
-//     slog_info("Competitor created",
-//             slog_int("id", result.id),
-//             slog_string("first_name", result.first_name),
-//             slog_string("last_name", result.last_name)
-//             );
-//
-//     response(ctx, OK, api_competitor_to_json(&result));
-// }
-
-
-// ------------ NEW STUFF ---------------
+// ------------ API Spec Implementation ---------------
 typedef struct {
     Req *req;
     Res *res;
@@ -260,19 +103,46 @@ void work_done_send_json(void *cx) {
 
 void competitor_to_json(Competitor *comp, void *data) {
     context *ctx = data;
-    if (ctx->log_message)
-        slog_debug(ctx->log_message,
-                slog_int("id", comp->id),
-                slog_string("first_name", (char*)comp->first_name.data),
-                slog_string("last_name", (char*)comp->last_name.data)
-        );
-
     ctx->body = api_competitor_to_json(&ctx->alloc, &(api_Competitor){
             .id = comp->id,
             .first_name = (char*)comp->first_name.data,
             .last_name = (char*)comp->last_name.data,
         });
     ctx->status = OK;
+
+    if (ctx->log_message)
+        slog_debug(ctx->log_message,
+                slog_int("id", comp->id),
+                slog_string("first_name", (char*)comp->first_name.data),
+                slog_string("last_name", (char*)comp->last_name.data)
+                );
+}
+
+void create_competitor_work(void *cx) {
+    context *ctx = cx;
+    Req *req = ctx->req;
+    Res *res = ctx->res;
+
+    api_Competitor body;
+    int rc = api_competitor_from_json(&ctx->alloc, req->body, &body);
+    if (rc != 0) {
+        slog_error("Competitor bad request");
+        response(ctx, BAD_REQUEST, "{\"error\": \"malformed json\"}\n");
+        return;
+    }
+
+    ctx->log_message = "Create Competitor";
+    rc = create_competitor(sqldb, &(CreateCompetitorParams){
+            .first_name = to_sql_text(body.first_name),
+            .last_name = to_sql_text(body.last_name),
+            .email = to_sql_text(""),
+        }, competitor_to_json, ctx);
+    if (rc != SQLITE_OK) {
+        slog_error("Competitor create failed");
+        response(ctx, INTERNAL_SERVER_ERROR, api_error_to_json(&ctx->alloc, 
+                    &(api_Error){.error = "Competitor not created, error occured"}));
+        return;
+    }
 }
 
 // GET /competitors - List all competitors
@@ -283,8 +153,12 @@ void api_get_competitors(Req *req, Res *res) {
 
 // POST /competitors - Create a competitor
 void api_create_competitor(Req *req, Res *res) {
-    slog_debug("Create Competitors Not Implmented");
-    reply(res, NOT_IMPLEMENTED, NULL, 0);
+    context *ctx = arena_alloc(req->arena, sizeof(context));
+    memset(ctx, 0, sizeof(context));
+    ctx->req = req;
+    ctx->res = res;
+    ctx->alloc = api_arena_allocator(req->arena);
+    spawn(ctx, create_competitor_work, work_done_send_json);
 }
 
 void get_competitor_work(void *cx) {
@@ -293,11 +167,6 @@ void get_competitor_work(void *cx) {
     const char *id_str = get_param(ctx->req, "id");
     int id = atoi(id_str);
 
-    slog_debug("Competitor getting",
-            slog_int("id", id)
-    );
-
-    Competitor comp;
     ctx->log_message = "Get Competitor";
     int rc = get_competitor(sqldb, id, competitor_to_json, ctx);
     if (rc != SQLITE_OK) {
@@ -308,10 +177,6 @@ void get_competitor_work(void *cx) {
                     &(api_Error){.error = "Competitor not found"}));
         return;
     }
-
-    slog_info("Competitor get",
-            slog_int("id", id)
-    );
 }
 
 // GET /competitors/{id} - Get a competitor by ID
