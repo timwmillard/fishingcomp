@@ -399,7 +399,7 @@ func (g *Generator) parseInsertStatement(q *Query, s *sql.InsertStatement) {
 				if strings.EqualFold(tableCol.Name, colName) {
 					q.Params = append(q.Params, Param{
 						Name: tableCol.Name,
-						Type: g.sqliteTypeToSqlType(tableCol.Type, false),
+						Type: g.sqliteTypeToSQLType(tableCol.Type, false),
 					})
 					break
 				}
@@ -433,7 +433,7 @@ func (g *Generator) parseUpdateStatement(q *Query, s *sql.UpdateStatement) {
 						if strings.EqualFold(tableCol.Name, colName) {
 							q.Params = append(q.Params, Param{
 								Name: tableCol.Name,
-								Type: g.sqliteTypeToSqlType(tableCol.Type, false),
+								Type: g.sqliteTypeToSQLType(tableCol.Type, false),
 							})
 							break
 						}
@@ -500,7 +500,7 @@ func (g *Generator) extractExprParams(q *Query, expr sql.Expr) {
 				if strings.EqualFold(col.Name, colName) {
 					q.Params = append(q.Params, Param{
 						Name: col.Name,
-						Type: g.sqliteTypeToSqlType(col.Type, false),
+						Type: g.sqliteTypeToSQLType(col.Type, false),
 					})
 					break
 				}
@@ -562,8 +562,8 @@ func (g *Generator) walkExpr(expr sql.Expr, fn func(sql.Expr)) {
 	}
 }
 
-// sqliteTypeToSqlType converts SQLite type to sql_* type
-func (g *Generator) sqliteTypeToSqlType(sqliteType string, nullable bool) string {
+// sqliteTypeToSQLType converts SQLite type to sql_* type
+func (g *Generator) sqliteTypeToSQLType(sqliteType string, nullable bool) string {
 	sqliteType = strings.ToLower(sqliteType)
 
 	var baseType string
@@ -674,10 +674,10 @@ typedef struct {
 		table := g.tables[tableName]
 		structName := g.typeName(table.Name)
 
-		g.modelsOut.WriteString(fmt.Sprintf("typedef struct {\n"))
+		g.modelsOut.WriteString("typedef struct {\n")
 		for _, col := range table.Columns {
 			fieldName := g.applyStyle(col.Name, g.fieldStyle)
-			fieldType := g.sqliteTypeToSqlType(col.Type, col.Nullable)
+			fieldType := g.sqliteTypeToSQLType(col.Type, col.Nullable)
 			g.modelsOut.WriteString(fmt.Sprintf("    %s %s;\n", fieldType, fieldName))
 		}
 		g.modelsOut.WriteString(fmt.Sprintf("} %s;\n\n", structName))
@@ -948,7 +948,7 @@ func (g *Generator) generateBindParams(q Query) {
 func (g *Generator) generateExtractColumns(cols []Column) {
 	for i, col := range cols {
 		fieldName := g.applyStyle(col.Name, g.fieldStyle)
-		sqlType := g.sqliteTypeToSqlType(col.Type, col.Nullable)
+		sqlType := g.sqliteTypeToSQLType(col.Type, col.Nullable)
 
 		switch {
 		case strings.HasPrefix(sqlType, "sql_nullint"):
