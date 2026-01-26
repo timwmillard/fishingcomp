@@ -8,9 +8,10 @@ FetchContent_Declare(
   ecewo
   GIT_REPOSITORY https://github.com/timwmillard/ecewo.git
   GIT_TAG working
+  # GIT_REPOSITORY https://github.com/ecewo/ecewo
   # GIT_TAG v3.1.0
   GIT_SHALLOW TRUE
-  PATCH_COMMAND patch -p1 -N < ${CMAKE_SOURCE_DIR}/patches/fix-arena-reset-race.patch || true
+  # PATCH_COMMAND patch -p1 -N < ${CMAKE_SOURCE_DIR}/patches/fix-arena-reset-race.patch || true
 )
 
 file(DOWNLOAD
@@ -65,10 +66,14 @@ add_custom_target(generate_schema DEPENDS ${CMAKE_SOURCE_DIR}/src/schema.h)
 
 add_executable(${PROJECT_NAME}
   src/main.c
+  src/handlers.c
+  src/log_handlers.c
+  src/users.c
   api/api_json.c
   sql/queries.c
   vendor/sqlite3.c
   vendor/unit.c
+  vendor/cJSON.c
 )
 
 # Track vendor headers so changes trigger rebuilds

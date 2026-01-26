@@ -1,3 +1,18 @@
+--- a/src/arena-pool.c	2026-01-26 01:00:00
++++ b/src/arena-pool.c	2026-01-26 01:00:00
+@@ -91,6 +91,11 @@
+ // Called when releasing
+ static void arena_pool_try_shrink(void) {
+   // Already at mutex lock when called
++
++  // Don't shrink immediately after return - let pool stabilize
++  // This prevents freeing arenas that might still have pending references
++  if (arena_pool.head < ARENA_POOL_HIGH_WATERMARK + ARENA_POOL_GROW_BATCH)
++    return;
+
+   if (arena_pool.head < ARENA_POOL_HIGH_WATERMARK)
+     return;
+
 --- a/src/response.c	2026-01-22 14:05:48
 +++ b/src/response.c	2026-01-23 00:52:23
 @@ -45,7 +45,7 @@

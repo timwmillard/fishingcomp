@@ -8,7 +8,8 @@
 
 #include "cweb.h"
 #include "schema.h"
-#include "handlers.c"
+
+void routes();
 
 void usage(FILE *stream)
 {

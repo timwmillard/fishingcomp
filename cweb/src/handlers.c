@@ -22,70 +22,12 @@ void health(Req *req, Res *res) {
     send_json(res, OK, body);
 }
 
-void get_log_level_handle(Req *req, Res *res) {
-    slog_logger *logger = slog_get_default();
-    slog_level min_level = logger->handler->min_level;
-    const char *level_str = slog_level_string(min_level);
-
-    if (strcmp(level_str, "????") == 0)
-        slog_debug("Logger get level", slog_int("min_level", min_level));
-    else
-        slog_debug("Logger get level", slog_string("min_level", level_str));
-
-    char *body = arena_sprintf(req->arena, 
-            "{\"min_level\": \"%s\"}\n", 
-            level_str);
-    send_json(res, OK, body);
-}
-
-void set_log_level_handle(Req *req, Res *res) {
-    slog_logger *logger = slog_get_default();
-
-    const char *level = get_param(req, "level");
-    slog_level min_level;
-    if (strcmp(level, "all") == 0) min_level = -1000;
-    else if (strcmp(level, "debug") == 0) min_level = SLOG_DEBUG;
-    else if (strcmp(level, "info") == 0) min_level = SLOG_INFO;
-    else if (strcmp(level, "warn") == 0) min_level = SLOG_WARN;
-    else if (strcmp(level, "error") == 0) min_level = SLOG_ERROR;
-    else if (strcmp(level, "off") == 0) min_level = 1000;
-    else send_json(res, BAD_REQUEST, "{\"error\": \"invalid log level\"}\n");
-
-    const char *level_str = slog_level_string(min_level);
-    if (strcmp(level_str, "????") == 0)
-        slog_debug("Logger get level", slog_int("min_level", min_level));
-    else
-        slog_debug("Logger get level", slog_string("min_level", level_str));
-
-    logger->handler->min_level = min_level;
-
-    char *body = arena_sprintf(req->arena, 
-            "{\"min_level\": \"%s\"}\n", level_str);
-    send_json(res, OK, body);
-}
-
-void log_handle(Req *req, Res *res) {
-    slog_debug("Debugging log",
-            slog_bool("status", true)
-    );
-    slog_info("Information log",
-            slog_bool("status", true)
-    );
-    slog_warn("Warning log",
-            slog_bool("status", true)
-    );
-    slog_error("Error log",
-            slog_bool("status", true)
-    );
-    reply(res, OK, NULL, 0);
-}
-
-
 // ------------ API Spec Implementation ---------------
 typedef struct {
     Req *req;
     Res *res;
-    api_Allocator alloc;
+    Arena *arena;
+    api_Allocator pool_alloc;
     int status;
     char *body;
     char *log_message;
@@ -99,11 +41,12 @@ static void response(context *ctx, int status, char *body) {
 void work_done_send_json(void *cx) {
     context *ctx = cx;
     send_json(ctx->res, ctx->status, ctx->body);
+    // arena_return(ctx->arena);
 }
 
 void competitor_to_json(Competitor *comp, void *data) {
     context *ctx = data;
-    ctx->body = api_competitor_to_json(&ctx->alloc, &(api_Competitor){
+    ctx->body = api_competitor_to_json(&ctx->pool_alloc, &(api_Competitor){
             .id = comp->id,
             .first_name = (char*)comp->first_name.data,
             .last_name = (char*)comp->last_name.data,
@@ -118,29 +61,27 @@ void competitor_to_json(Competitor *comp, void *data) {
                 );
 }
 
-void create_competitor_work(void *cx) {
+void get_competitor_work(void *cx) {
     context *ctx = cx;
-    Req *req = ctx->req;
-    Res *res = ctx->res;
 
-    api_Competitor body;
-    int rc = api_competitor_from_json(&ctx->alloc, req->body, &body);
-    if (rc != 0) {
-        slog_error("Competitor bad request");
-        response(ctx, BAD_REQUEST, "{\"error\": \"malformed json\"}\n");
-        return;
-    }
+    // Main thread arena
+    // ctx->pool_alloc = api_arena_allocator(ctx->req->arena);
+    
+    // New arena
+    Arena *arena = arena_borrow();
+    ctx->pool_alloc = api_arena_allocator(arena);
 
-    ctx->log_message = "Create Competitor";
-    rc = create_competitor(sqldb, &(CreateCompetitorParams){
-            .first_name = to_sql_text(body.first_name),
-            .last_name = to_sql_text(body.last_name),
-            .email = to_sql_text(""),
-        }, competitor_to_json, ctx);
+    const char *id_str = get_param(ctx->req, "id");
+    int id = atoi(id_str);
+
+    ctx->log_message = "Get Competitor";
+    int rc = get_competitor(sqldb, id, competitor_to_json, ctx);
     if (rc != SQLITE_OK) {
-        slog_error("Competitor create failed");
-        response(ctx, INTERNAL_SERVER_ERROR, api_error_to_json(&ctx->alloc, 
-                    &(api_Error){.error = "Competitor not created, error occured"}));
+        slog_error("Competitor not found",
+                slog_int("id", id)
+        );
+        response(ctx, NOT_FOUND, api_error_to_json(&ctx->pool_alloc, 
+                    &(api_Error){.error = "Competitor not found"}));
         return;
     }
 }
@@ -153,31 +94,10 @@ void api_get_competitors(Req *req, Res *res) {
 
 // POST /competitors - Create a competitor
 void api_create_competitor(Req *req, Res *res) {
-    context *ctx = arena_alloc(req->arena, sizeof(context));
-    memset(ctx, 0, sizeof(context));
-    ctx->req = req;
-    ctx->res = res;
-    ctx->alloc = api_arena_allocator(req->arena);
-    spawn(ctx, create_competitor_work, work_done_send_json);
+    slog_debug("Create Competitors Not Implmented");
+    reply(res, NOT_IMPLEMENTED, NULL, 0);
 }
 
-void get_competitor_work(void *cx) {
-    context *ctx = cx;
-
-    const char *id_str = get_param(ctx->req, "id");
-    int id = atoi(id_str);
-
-    ctx->log_message = "Get Competitor";
-    int rc = get_competitor(sqldb, id, competitor_to_json, ctx);
-    if (rc != SQLITE_OK) {
-        slog_error("Competitor not found",
-                slog_int("id", id)
-        );
-        response(ctx, NOT_FOUND, api_error_to_json(&ctx->alloc, 
-                    &(api_Error){.error = "Competitor not found"}));
-        return;
-    }
-}
 
 // GET /competitors/{id} - Get a competitor by ID
 void api_get_competitor(Req *req, Res *res) {
@@ -185,7 +105,7 @@ void api_get_competitor(Req *req, Res *res) {
     memset(ctx, 0, sizeof(context));
     ctx->req = req;
     ctx->res = res;
-    ctx->alloc = api_arena_allocator(req->arena);
+    // ctx->alloc = api_arena_allocator(req->arena);
     spawn(ctx, get_competitor_work, work_done_send_json);
 }
 
@@ -195,43 +115,65 @@ void api_update_competitor(Req *req, Res *res) {
     reply(res, NOT_IMPLEMENTED, NULL, 0);
 }
 
-void delete_competitor_work(void *cx) {
-    context *ctx = cx;
+// DELETE /competitors/{id} - Delete a competitor
+void api_delete_competitor(Req *req, Res *res) {
+    slog_debug("Delete Competitors Not Implmented");
+    reply(res, NOT_IMPLEMENTED, NULL, 0);
+}
 
-    const char *id_str = get_param(ctx->req, "id");
+typedef struct {
+    Arena *arena;
+    char *data;
+} Buffer;
+
+void competitor_to_json_sync(Competitor *comp, void *data) {
+    Buffer *buf = data;
+    api_Allocator alloc = api_arena_allocator(buf->arena);
+    buf->data = api_competitor_to_json(&alloc, &(api_Competitor){
+            .id = comp->id,
+            .first_name = (char*)comp->first_name.data,
+            .last_name = (char*)comp->last_name.data,
+        });
+    slog_debug("Get Competitor",
+            slog_int("id", comp->id),
+            slog_string("first_name", (char*)comp->first_name.data),
+            slog_string("last_name", (char*)comp->last_name.data)
+        );
+}
+
+// GET /competitors/{id} - Get a competitor by ID
+void api_get_competitor_sync(Req *req, Res *res) {
+    api_Allocator alloc = api_arena_allocator(req->arena);
+    const char *id_str = get_param(req, "id");
     int id = atoi(id_str);
 
-    ctx->log_message = "Delete Competitor";
-    int rc = delete_competitor(sqldb, id);
+    Buffer buf = {.arena = req->arena};
+    int rc = get_competitor(sqldb, id, competitor_to_json_sync, &buf);
     if (rc != SQLITE_OK) {
         slog_error("Competitor not found",
                 slog_int("id", id)
         );
-        response(ctx, NOT_FOUND, api_error_to_json(&ctx->alloc, 
+        send_json(res, NOT_FOUND, api_error_to_json(&alloc, 
                     &(api_Error){.error = "Competitor not found"}));
         return;
     }
-    slog_debug("Competitor deleted", slog_int("id", id));
-    response(ctx, OK, "");
-}
-
-// DELETE /competitors/{id} - Delete a competitor
-void api_delete_competitor(Req *req, Res *res) {
-    context *ctx = arena_alloc(req->arena, sizeof(context));
-    memset(ctx, 0, sizeof(context));
-    ctx->req = req;
-    ctx->res = res;
-    ctx->alloc = api_arena_allocator(req->arena);
-    spawn(ctx, delete_competitor_work, work_done_send_json);
+    send_json(res, OK, buf.data);
 }
 
 
+void get_log_level_handle(Req *req, Res *res);
+void set_log_level_handle(Req *req, Res *res);
+void log_handle(Req *req, Res *res);
+void get_all_users(Req *req, Res *res);
 
 void routes() {
     get("/health", health);
     get("/log", log_handle);
     get("/log/level", get_log_level_handle);
     post("/log/level/:level", set_log_level_handle);
+    get("/users", get_all_users);
+
+    get("/sync/competitors/:id", api_get_competitor_sync); // Get a competitor by ID
 
     api_routes();
 }
