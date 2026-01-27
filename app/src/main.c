@@ -8,27 +8,12 @@
 #include "cimgui.h"
 #include "sokol_imgui.h"
 
+void ui_window(void);
+
 static struct {
     sg_pass_action pass_action;
 } state = {0};
 
-void init(void)
-{
-
-    sg_setup(&(sg_desc){
-            .environment = sglue_environment(),
-            .logger.func = slog_func,
-            });
-
-    simgui_setup(&(simgui_desc_t){0});
-
-    state.pass_action = (sg_pass_action) {
-        .colors[0] = {
-            .load_action = SG_LOADACTION_CLEAR,
-            .clear_value = {0.2, 0.2, 0.2, 1.0},
-        },
-    };
-}
 
 void save()
 {
@@ -37,13 +22,9 @@ void save()
 static char buf[512];
 static float f;
 
-void gui_draw()
+void ui_draw()
 {
-    igText("Hello, world %d", 123);
-    if (igButton("Save", (ImVec2){50, 40}))
-        save();
-    igInputText("string", buf, 512, 0, 0, 0);
-    igSliderFloat("float", &f, 0.0f, 1.0f, 0, 0);
+    ui_window();
 }
 
 void frame(void)
@@ -55,7 +36,7 @@ void frame(void)
         .dpi_scale = sapp_dpi_scale(),
     });
 
-    gui_draw();
+    ui_draw();
 
     sg_begin_pass(&(sg_pass){
             .action = state.pass_action,
@@ -66,14 +47,6 @@ void frame(void)
 
     sg_end_pass();
     sg_commit();
-
-    printf("%s: f = %f\n", buf, f);
-}
-
-void cleanup(void)
-{
-    simgui_shutdown();
-    sg_shutdown();
 }
 
 void event(const sapp_event* ev)
@@ -86,6 +59,34 @@ void event(const sapp_event* ev)
     simgui_handle_event(ev);
 }
 
+void cleanup(void)
+{
+    simgui_shutdown();
+    sg_shutdown();
+}
+
+void init(void)
+{
+
+    sg_setup(&(sg_desc){
+            .environment = sglue_environment(),
+            .logger.func = slog_func,
+            });
+
+    simgui_setup(&(simgui_desc_t){0});
+
+    // Enable docking
+    ImGuiIO* io = igGetIO_Nil();
+    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+    state.pass_action = (sg_pass_action) {
+        .colors[0] = {
+            .load_action = SG_LOADACTION_CLEAR,
+            .clear_value = {0.2, 0.2, 0.2, 1.0},
+        },
+    };
+}
+
 sapp_desc sokol_main(int argc, char *argv[])
 {
     return (sapp_desc){
@@ -95,6 +96,6 @@ sapp_desc sokol_main(int argc, char *argv[])
         .event_cb = event,
         .width = 800,
         .height = 600,
-        .window_title = "ImGui Demo with sokol",
+        .window_title = "Fishing Comp",
     };
 }

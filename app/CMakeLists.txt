@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(imgui_demo C CXX)
+project(fishingcomp C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
@@ -28,8 +28,9 @@ endif()
 
 add_definitions(${BACKEND})
 
-add_executable(imgui_demo
+add_executable(${PROJECT_NAME}
     src/main.c
+    src/ui_window.c
     deps/deps.c
     deps/deps.cpp
     deps/cimgui/cimgui.cpp
@@ -40,5 +41,5 @@ add_executable(imgui_demo
     deps/cimgui/imgui/imgui_demo.cpp
 )
 
-target_link_libraries(imgui_demo ${PLATFORM_LIBS})
+target_link_libraries(${PROJECT_NAME} ${PLATFORM_LIBS})
 
