@@ -13,11 +13,13 @@
 #include "sokol_imgui.h"
 
 void ui_window(void);
+void refresh_data();
 
 static struct {
     sg_pass_action pass_action;
-    sqlite3 *db;
 } state = {0};
+
+sqlite3 *db;
 
 void ui_draw()
 {
@@ -84,18 +86,18 @@ void init(void)
 }
 
 void db_open(const char *db_name) {
-    int rc = sqlite3_open(db_name, &state.db);
+    int rc = sqlite3_open(db_name, &db);
     if (rc != SQLITE_OK) {
-        printf("Database open failed: %s\n", sqlite3_errmsg(state.db));
-        sqlite3_close(state.db);
+        printf("Database open failed: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
         exit(1);
     }
 
     // Execute embedded schema
     char *err_msg = NULL;
-    rc = sqlite3_exec(state.db, (char*)sql_schema_sql_data, NULL, NULL, &err_msg);
+    rc = sqlite3_exec(db, (char*)sql_schema_sql_data, NULL, NULL, &err_msg);
     if (rc != SQLITE_OK) {
-        printf("Database schema execution failed: %s", sqlite3_errmsg(state.db));
+        printf("Database schema execution failed: %s", sqlite3_errmsg(db));
         sqlite3_free(err_msg);
         exit(1);
     }
@@ -106,6 +108,7 @@ sapp_desc sokol_main(int argc, char *argv[])
     const char *db_name = "fishingcomp.db";
     if (argc > 1) db_name = argv[1]; 
     db_open(db_name);
+    refresh_data();
 
     return (sapp_desc){
         .init_cb = init,

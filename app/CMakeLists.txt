@@ -77,6 +77,7 @@ add_definitions(${BACKEND})
 add_executable(${PROJECT_NAME}
     src/main.c
     src/ui_window.c
+    src/db/queries.c
     deps/sqlite3.c
     deps/deps.c
     deps/deps.cpp

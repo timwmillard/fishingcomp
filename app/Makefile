@@ -31,3 +31,5 @@ update-sqlite3:
 	unzip -j deps/sqlite-amalgamation.zip -d deps/
 	rm deps/sqlite-amalgamation.zip
 
+update-arena:
+	wget -O deps/arena.h https://raw.githubusercontent.com/tsoding/arena/refs/heads/master/arena.h

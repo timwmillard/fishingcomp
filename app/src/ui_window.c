@@ -1,11 +1,18 @@
 // UI Window
 
 #include "sokol_app.h"
+#include "sqlite3.h"
+
+#define ARENA_IMPLEMENTATION
+#include "arena.h"
+
+#include "db/queries.h"
 
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cimgui.h"
 
-/*** Global State ***/
+extern sqlite3 *db;
+
 static struct {
     // GUI
     bool show_competitors;
@@ -14,8 +21,40 @@ static struct {
     bool show_demo;
     bool dock_setup_done;
 
+    Competitor competitor;
+    Arena arena;
 
 } window_state = {0};
+
+static sql_text arena_copy_text(Arena *a, sql_text src) {
+    return (sql_text){
+        .data = arena_memdup(a, src.data, src.len),
+        .len = src.len,
+    };
+}
+
+void on_get_competitor(Competitor* comp, void* ctx) {
+    arena_reset(&window_state.arena);
+
+    window_state.competitor.id = comp->id;
+    window_state.competitor.competitor_no = arena_copy_text(&window_state.arena, comp->competitor_no);
+    window_state.competitor.first_name = arena_copy_text(&window_state.arena, comp->first_name);
+    window_state.competitor.last_name = arena_copy_text(&window_state.arena, comp->last_name);
+    window_state.competitor.email = arena_copy_text(&window_state.arena, comp->email);
+    window_state.competitor.mobile = arena_copy_text(&window_state.arena, comp->mobile);
+    window_state.competitor.phone = arena_copy_text(&window_state.arena, comp->phone);
+    window_state.competitor.address1 = arena_copy_text(&window_state.arena, comp->address1);
+    window_state.competitor.address2 = arena_copy_text(&window_state.arena, comp->address2);
+    window_state.competitor.suburb = arena_copy_text(&window_state.arena, comp->suburb);
+    window_state.competitor.state = arena_copy_text(&window_state.arena, comp->state);
+    window_state.competitor.postcode = arena_copy_text(&window_state.arena, comp->postcode);
+    window_state.competitor.boat_id = comp->boat_id;
+}
+
+void refresh_data() {
+    int rc = get_competitor(db, 1, on_get_competitor, NULL);
+}
+
 
 void ui_reset_layout(ImGuiID dockspace_id)
 {
@@ -82,6 +121,10 @@ void ui_window(void)
             igEndMenu();
         }
         if (igBeginMenu("View", true)) {
+            if (igMenuItem_Bool("Refresh Data", "", false, true)) {
+                refresh_data();
+            }
+            igSeparator();
             if (igMenuItem_Bool("Reset Layout", "", false, true)) {
                 ui_reset_layout(dockspace_id);
             }
@@ -117,6 +160,7 @@ void ui_window(void)
     if (window_state.show_competitors) {
         if (igBegin("Competitors Details", &window_state.show_competitors, ImGuiWindowFlags_None)) {
             igText("Please enter your business name:");
+            igText("Competitor: %s", window_state.competitor.first_name);
             // igInputText("##business_name", state.business.name, sizeof(state.business.name), ImGuiInputTextFlags_None, NULL, NULL);
 
             igSeparator();
