@@ -51,6 +51,27 @@ add_custom_command(
 )
 add_custom_target(generate_schema DEPENDS ${CMAKE_SOURCE_DIR}/src/schema.h)
 
+# Generate SQL queries with sql2c
+add_custom_command(
+    OUTPUT
+        ${CMAKE_SOURCE_DIR}/sql/queries.h
+        ${CMAKE_SOURCE_DIR}/sql/queries.c
+        ${CMAKE_SOURCE_DIR}/sql/models.h
+    COMMAND go run ${CMAKE_SOURCE_DIR}/tool/sql2c/main.go -config config.yaml
+    DEPENDS
+        ${CMAKE_SOURCE_DIR}/sql/schema.sql
+        ${CMAKE_SOURCE_DIR}/sql/queries.sql
+        ${CMAKE_SOURCE_DIR}/sql/config.yaml
+        ${CMAKE_SOURCE_DIR}/tool/sql2c/main.go
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/sql
+    COMMENT "Generating queries.h, queries.c, models.h with sql2c"
+)
+add_custom_target(generate_queries DEPENDS
+    ${CMAKE_SOURCE_DIR}/sql/queries.h
+    ${CMAKE_SOURCE_DIR}/sql/queries.c
+    ${CMAKE_SOURCE_DIR}/sql/models.h
+)
+
 # Custom targets
 # add_custom_command(
 #     OUTPUT ${CMAKE_SOURCE_DIR}/src/models.h
@@ -86,9 +107,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${CMAKE_SOURCE_DIR}/sql
 )
 
-# Ensure schema.h is generated before building the executable
+# Ensure generated files are created before building the executable
 add_dependencies(${PROJECT_NAME}
     generate_schema
+    generate_queries
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ecewo)

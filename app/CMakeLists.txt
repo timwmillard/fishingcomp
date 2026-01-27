@@ -12,16 +12,49 @@ set_target_properties(bin2c PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tool
 )
 add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/src/schema.h
-    COMMAND $<TARGET_FILE:bin2c> ${CMAKE_SOURCE_DIR}/sql/schema.sql ${CMAKE_SOURCE_DIR}/src/schema.h sql_schema_sql
+    OUTPUT ${CMAKE_SOURCE_DIR}/src/db/schema.h
+    COMMAND $<TARGET_FILE:bin2c> ${CMAKE_SOURCE_DIR}/sql/schema.sql ${CMAKE_SOURCE_DIR}/src/db/schema.h sql_schema_sql
     DEPENDS ${CMAKE_SOURCE_DIR}/sql/schema.sql bin2c
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Generating schema.h from sql/schema.sql using bin2c"
+    COMMENT "Generating db/schema.h from sql/schema.sql using bin2c"
 )
-add_custom_target(generate_schema DEPENDS ${CMAKE_SOURCE_DIR}/src/schema.h)
+add_custom_target(generate_schema DEPENDS ${CMAKE_SOURCE_DIR}/src/db/schema.h)
+
+# Build sql2c tool
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/tool/sql2c
+    COMMAND go build -o ${CMAKE_BINARY_DIR}/tool/sql2c .
+    DEPENDS ${CMAKE_SOURCE_DIR}/tool/sql2c/main.go
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tool/sql2c
+    COMMENT "Building sql2c tool"
+)
+add_custom_target(build_sql2c DEPENDS ${CMAKE_BINARY_DIR}/tool/sql2c)
+
+# Generate SQL queries with sql2c
+add_custom_command(
+    OUTPUT
+        ${CMAKE_SOURCE_DIR}/src/db/queries.h
+        ${CMAKE_SOURCE_DIR}/src/db/queries.c
+        ${CMAKE_SOURCE_DIR}/src/db/models.h
+    COMMAND ${CMAKE_BINARY_DIR}/tool/sql2c -config config.yaml
+    DEPENDS
+        ${CMAKE_BINARY_DIR}/tool/sql2c
+        ${CMAKE_SOURCE_DIR}/sql/schema.sql
+        ${CMAKE_SOURCE_DIR}/sql/queries.sql
+        ${CMAKE_SOURCE_DIR}/sql/config.yaml
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/sql
+    COMMENT "Generating db/queries.h, db/queries.c, db/models.h with sql2c"
+)
+add_custom_target(generate_queries DEPENDS
+    ${CMAKE_SOURCE_DIR}/src/db/queries.h
+    ${CMAKE_SOURCE_DIR}/src/db/queries.c
+    ${CMAKE_SOURCE_DIR}/src/db/models.h
+)
 
 ####### BUILD APP ###############
 include_directories(.)
+include_directories(src)
+include_directories(src/db)
 include_directories(deps)
 include_directories(deps/cimgui)
 
@@ -59,6 +92,7 @@ add_executable(${PROJECT_NAME}
 # Ensure schema.h is generated before building the executable
 add_dependencies(${PROJECT_NAME}
     generate_schema
+    generate_queries
 )
 
 target_link_libraries(${PROJECT_NAME} ${PLATFORM_LIBS})
