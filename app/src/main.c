@@ -71,11 +71,22 @@ void init(void)
             .logger.func = slog_func,
             });
 
-    simgui_setup(&(simgui_desc_t){0});
+    simgui_setup(&(simgui_desc_t){.no_default_font = true});
 
     // Enable docking
     ImGuiIO* io = igGetIO_Nil();
     io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+    // Use cimgui constructor to get properly initialized config
+    ImFontConfig* font_cfg = ImFontConfig_ImFontConfig();
+
+    // Add font - sokol_imgui 1.92+ handles atlas texture automatically
+    // ImFontAtlas_AddFontDefault(io->Fonts, font_cfg);
+    // Or for custom font:
+    ImFontAtlas_AddFontFromFileTTF(io->Fonts, "extra_font/Roboto-Regular.ttf", 20.0f, font_cfg, NULL);
+
+    ImFontConfig_destroy(font_cfg);
+
 
     state.pass_action = (sg_pass_action) {
         .colors[0] = {
