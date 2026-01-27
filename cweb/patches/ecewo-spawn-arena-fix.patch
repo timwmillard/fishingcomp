@@ -1,0 +1,121 @@
+Subject: [PATCH] Fix spawn() use-after-free when connection closes
+
+When using spawn() with handlers, if the client closes the connection
+before the worker completes, the connection's arena is freed while the
+worker/done callback still holds references to it, causing a segfault.
+
+This patch adds spawn_with_arena() which takes ownership of a borrowed
+arena and returns it after the done callback completes, ensuring memory
+safety for async operations.
+
+---
+ include/ecewo.h |  1 +
+ src/spawn.c     | 51 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 52 insertions(+)
+
+diff --git a/include/ecewo.h b/include/ecewo.h
+index 1234567..abcdefg 100644
+--- a/include/ecewo.h
++++ b/include/ecewo.h
+@@ -221,6 +221,7 @@ void *get_context(Req *req, const char *key);
+ // TASK SPAWN
+ typedef void (*spawn_handler_t)(void *context);
+ int spawn(void *context, spawn_handler_t work_fn, spawn_handler_t done_fn);
++int spawn_with_arena(void *context, spawn_handler_t work_fn, spawn_handler_t done_fn, Arena *arena);
+
+ // ROUTE REGISTRATION
+ typedef enum {
+diff --git a/src/spawn.c b/src/spawn.c
+index 1234567..abcdefg 100644
+--- a/src/spawn.c
++++ b/src/spawn.c
+@@ -9,6 +9,7 @@ typedef struct
+   void *context;
+   spawn_handler_t work_fn;
+   spawn_handler_t result_fn;
++  Arena *owned_arena;  // Arena to return when done (can be NULL)
+ } spawn_t;
+
+ static void spawn_cleanup_cb(uv_handle_t *handle) {
+@@ -26,6 +27,10 @@ static void spawn_async_cb(uv_async_t *handle) {
+   if (t->result_fn)
+     t->result_fn(t->context);
+
++  // Return the arena if we own one
++  if (t->owned_arena)
++    arena_return(t->owned_arena);
++
+   uv_close((uv_handle_t *)handle, spawn_cleanup_cb);
+ }
+
+@@ -56,6 +61,7 @@ int spawn(void *context, spawn_handler_t work_fn, spawn_handler_t done_fn) {
+   task->context = context;
+   task->work_fn = work_fn;
+   task->result_fn = done_fn;
++  task->owned_arena = NULL;
+
+   int result = uv_queue_work(
+       uv_default_loop(),
+@@ -72,3 +78,48 @@ int spawn(void *context, spawn_handler_t work_fn, spawn_handler_t done_fn) {
+
+   return 0;
+ }
++
++/**
++ * spawn_with_arena - Spawn async work with a dedicated arena
++ *
++ * This function is similar to spawn(), but takes ownership of a borrowed arena.
++ * The arena will be returned to the pool after the done callback completes.
++ *
++ * Usage:
++ *   Arena *arena = arena_borrow();
++ *   MyContext *ctx = arena_alloc(arena, sizeof(MyContext));
++ *   ctx->res = res;  // Store a COPY of the uv_tcp_t*, not res itself
++ *   ctx->client_socket = res->client_socket;
++ *   // ... copy other needed data ...
++ *   spawn_with_arena(ctx, work_fn, done_fn, arena);
++ *
++ * IMPORTANT: In the done callback, you must check if the socket is still valid
++ * before sending a response, as the client may have disconnected.
++ */
++int spawn_with_arena(void *context, spawn_handler_t work_fn, spawn_handler_t done_fn, Arena *arena) {
++  if (!context || !work_fn)
++    return -1;
++
++  spawn_t *task = calloc(1, sizeof(spawn_t));
++  if (!task) {
++    if (arena)
++      arena_return(arena);
++    return -1;
++  }
++
++  if (uv_async_init(uv_default_loop(), &task->async_send, spawn_async_cb) != 0) {
++    free(task);
++    if (arena)
++      arena_return(arena);
++    return -1;
++  }
++
++  task->work.data = task;
++  task->async_send.data = task;
++  task->context = context;
++  task->work_fn = work_fn;
++  task->result_fn = done_fn;
++  task->owned_arena = arena;
++
++  int result = uv_queue_work(
++      uv_default_loop(),
++      &task->work,
++      spawn_work_cb,
++      spawn_after_work_cb);
++
++  if (result != 0) {
++    uv_close((uv_handle_t *)&task->async_send, NULL);
++    free(task);
++    if (arena)
++      arena_return(arena);
++    return result;
++  }
++
++  return 0;
++}

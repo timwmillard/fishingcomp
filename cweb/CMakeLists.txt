@@ -11,7 +11,7 @@ FetchContent_Declare(
   # GIT_REPOSITORY https://github.com/ecewo/ecewo
   # GIT_TAG v3.1.0
   GIT_SHALLOW TRUE
-  # PATCH_COMMAND patch -p1 -N < ${CMAKE_SOURCE_DIR}/patches/fix-arena-reset-race.patch || true
+  PATCH_COMMAND patch -p1 -N < ${CMAKE_SOURCE_DIR}/patches/fix-arena-reset-race.patch || true
 )
 
 file(DOWNLOAD

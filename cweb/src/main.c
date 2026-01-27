@@ -9,6 +9,7 @@
 #include "cweb.h"
 #include "schema.h"
 
+// header for handlers.c
 void routes();
 
 void usage(FILE *stream)

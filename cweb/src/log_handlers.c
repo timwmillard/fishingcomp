@@ -1,8 +1,6 @@
 #include "ecewo.h"
 #include "slog.h"
 
-#include "cweb.h"
-
 void get_log_level_handle(Req *req, Res *res) {
     slog_logger *logger = slog_get_default();
     slog_level min_level = logger->handler->min_level;

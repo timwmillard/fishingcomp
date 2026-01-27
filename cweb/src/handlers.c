@@ -8,16 +8,17 @@
 #include "queries.h"
 #include "api.h"
 
+extern sqlite3 *sqldb;
 
 void health(Req *req, Res *res) {
-    // int rc = sqlite3_db_readonly(sqlctx.db, "main");
+    // int rc = sqlite3_sqldb_readonly(sqlctx.db, "main");
     int rc = sqlite3_exec(sqldb, "SELECT 1", NULL, NULL, NULL);
     // res->keep_alive = 0;  // Disable keep-alive
     
     char *body = arena_sprintf(req->arena, 
             "{\n"
             "  \"version\": \"" VERSION "\",\n"
-            "  \"db_connected\": %s\n"
+            "  \"sqldb_connected\": %s\n"
             "}\n", rc==SQLITE_OK?"true":"false");
     send_json(res, OK, body);
 }
