@@ -14,11 +14,6 @@ static struct {
     sg_pass_action pass_action;
 } state = {0};
 
-
-void save()
-{
-}
-
 static char buf[512];
 static float f;
 
