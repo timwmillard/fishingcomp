@@ -1,5 +1,6 @@
 // UI Window
 
+#include <string.h>
 #include "sokol_app.h"
 #include "sqlite3.h"
 
@@ -13,6 +14,15 @@
 
 extern sqlite3 *db;
 
+#define MAX_STR_LEN 256
+
+static struct {
+    struct {
+        char first_name[MAX_STR_LEN];
+        char last_name[MAX_STR_LEN];
+    } competitor;
+} data = {0};
+
 static struct {
     // GUI
     bool show_competitors;
@@ -21,34 +31,17 @@ static struct {
     bool show_demo;
     bool dock_setup_done;
 
-    Competitor competitor;
-    Arena arena;
-
 } window_state = {0};
 
-static sql_text arena_copy_text(Arena *a, sql_text src) {
-    return (sql_text){
-        .data = arena_memdup(a, src.data, src.len),
-        .len = src.len,
-    };
+static void copy_sql_text(char *dst, size_t dst_size, sql_text src) {
+    size_t len = src.len < dst_size - 1 ? src.len : dst_size - 1;
+    memcpy(dst, src.data, len);
+    dst[len] = '\0';
 }
 
 void on_get_competitor(Competitor* comp, void* ctx) {
-    arena_reset(&window_state.arena);
-
-    window_state.competitor.id = comp->id;
-    window_state.competitor.competitor_no = arena_copy_text(&window_state.arena, comp->competitor_no);
-    window_state.competitor.first_name = arena_copy_text(&window_state.arena, comp->first_name);
-    window_state.competitor.last_name = arena_copy_text(&window_state.arena, comp->last_name);
-    window_state.competitor.email = arena_copy_text(&window_state.arena, comp->email);
-    window_state.competitor.mobile = arena_copy_text(&window_state.arena, comp->mobile);
-    window_state.competitor.phone = arena_copy_text(&window_state.arena, comp->phone);
-    window_state.competitor.address1 = arena_copy_text(&window_state.arena, comp->address1);
-    window_state.competitor.address2 = arena_copy_text(&window_state.arena, comp->address2);
-    window_state.competitor.suburb = arena_copy_text(&window_state.arena, comp->suburb);
-    window_state.competitor.state = arena_copy_text(&window_state.arena, comp->state);
-    window_state.competitor.postcode = arena_copy_text(&window_state.arena, comp->postcode);
-    window_state.competitor.boat_id = comp->boat_id;
+    copy_sql_text(data.competitor.first_name, MAX_STR_LEN, comp->first_name);
+    copy_sql_text(data.competitor.last_name, MAX_STR_LEN, comp->last_name);
 }
 
 void refresh_data() {
@@ -160,8 +153,8 @@ void ui_window(void)
     if (window_state.show_competitors) {
         if (igBegin("Competitors Details", &window_state.show_competitors, ImGuiWindowFlags_None)) {
             igText("Please enter your business name:");
-            igText("Competitor: %s", window_state.competitor.first_name);
-            // igInputText("##business_name", state.business.name, sizeof(state.business.name), ImGuiInputTextFlags_None, NULL, NULL);
+            igText("Competitor: %s", data.competitor.first_name);
+            igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, ImGuiInputTextFlags_None, NULL, NULL);
 
             igSeparator();
 

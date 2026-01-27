@@ -2,17 +2,13 @@
 -- Boat
 create table if not exists boat (
     id integer primary key,
-    boat_no text not null default '', -- TODO: make an int
     name text not null default '',
     boat_rego text not null default ''
 );
 
--- create unique index boat_event_id_boat_no_key on boat(event_id, boat_no) where boat_no <> '';
-
 -- Competitor
 create table if not exists competitor (
     id integer primary key,
-    competitor_no text not null default '', -- TODO: make an int
     first_name text not null default '',
     last_name text not null default '',
     email text not null default '',
@@ -25,8 +21,6 @@ create table if not exists competitor (
     postcode text not null default '',
     boat_id integer references boat(id)
 );
-
--- create unique index competitor_event_id_competitor_no_key on competitor(event_id, competitor_no) where competitor_no <> '';
 
 -- Species
 create table if not exists species (

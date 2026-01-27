@@ -86,7 +86,6 @@ static inline sql_nulltext to_sql_nulltext(char *text, bool null) {
 
 typedef struct {
     sql_int64 id;
-    sql_text boat_no;
     sql_text name;
     sql_text boat_rego;
 } Boat;
@@ -104,7 +103,6 @@ typedef struct {
 
 typedef struct {
     sql_int64 id;
-    sql_text competitor_no;
     sql_text first_name;
     sql_text last_name;
     sql_text email;
