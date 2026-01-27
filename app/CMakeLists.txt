@@ -53,8 +53,6 @@ add_custom_target(generate_queries DEPENDS
 
 ####### BUILD APP ###############
 include_directories(.)
-include_directories(src)
-include_directories(src/db)
 include_directories(deps)
 include_directories(deps/cimgui)
 
@@ -79,6 +77,7 @@ add_definitions(${BACKEND})
 add_executable(${PROJECT_NAME}
     src/main.c
     src/ui_window.c
+    deps/sqlite3.c
     deps/deps.c
     deps/deps.cpp
     deps/cimgui/cimgui.cpp

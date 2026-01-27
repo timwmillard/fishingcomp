@@ -3,14 +3,14 @@ testdata_dir = "testdata"
 tmp_dir = "build"
 
 [build]
-args_bin = ["-port=9000", "-log=color"]
+args_bin = [""]
 entrypoint = "./build/fishingcomp"
 pre_cmd = []
 cmd = "cmake --build build"
 post_cmd = []
 delay = 1000
-exclude_dir = ["build", "_tmp", "sql/gen"]
-exclude_file = ["src/schema.h", "src/models.h", "src/queries.c"]
+exclude_dir = ["build", "_tmp", "src/db"]
+exclude_file = []
 exclude_regex = []
 exclude_unchanged = false
 follow_symlink = false

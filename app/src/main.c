@@ -1,4 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
+
+#include "sqlite3.h"
+#include "db/schema.h"
 #include "sokol_app.h"
 #include "sokol_gfx.h"
 #include "sokol_glue.h"
@@ -12,10 +16,8 @@ void ui_window(void);
 
 static struct {
     sg_pass_action pass_action;
+    sqlite3 *db;
 } state = {0};
-
-static char buf[512];
-static float f;
 
 void ui_draw()
 {
@@ -62,7 +64,6 @@ void cleanup(void)
 
 void init(void)
 {
-
     sg_setup(&(sg_desc){
             .environment = sglue_environment(),
             .logger.func = slog_func,
@@ -82,8 +83,30 @@ void init(void)
     };
 }
 
+void db_open(const char *db_name) {
+    int rc = sqlite3_open(db_name, &state.db);
+    if (rc != SQLITE_OK) {
+        printf("Database open failed: %s\n", sqlite3_errmsg(state.db));
+        sqlite3_close(state.db);
+        exit(1);
+    }
+
+    // Execute embedded schema
+    char *err_msg = NULL;
+    rc = sqlite3_exec(state.db, (char*)sql_schema_sql_data, NULL, NULL, &err_msg);
+    if (rc != SQLITE_OK) {
+        printf("Database schema execution failed: %s", sqlite3_errmsg(state.db));
+        sqlite3_free(err_msg);
+        exit(1);
+    }
+}
+
 sapp_desc sokol_main(int argc, char *argv[])
 {
+    const char *db_name = "fishingcomp.db";
+    if (argc > 1) db_name = argv[1]; 
+    db_open(db_name);
+
     return (sapp_desc){
         .init_cb = init,
         .frame_cb = frame,

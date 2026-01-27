@@ -26,3 +26,8 @@ update-imgui:
 	wget -O deps/cimgui/imgui/imstb_textedit.h https://raw.githubusercontent.com/ocornut/imgui/62275e877a691bd2e51d1ca86bdfed49fa5cb297/imstb_textedit.h
 	wget -O deps/cimgui/imgui/imstb_truetype.h https://raw.githubusercontent.com/ocornut/imgui/62275e877a691bd2e51d1ca86bdfed49fa5cb297/imstb_truetype.h
 
+update-sqlite3:
+	wget -O deps/sqlite-amalgamation.zip https://sqlite.org/2025/sqlite-amalgamation-3500400.zip
+	unzip -j deps/sqlite-amalgamation.zip -d deps/
+	rm deps/sqlite-amalgamation.zip
+
