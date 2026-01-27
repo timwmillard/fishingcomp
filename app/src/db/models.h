@@ -93,7 +93,7 @@ typedef struct {
 typedef struct {
     sql_int64 id;
     sql_int64 competitor_id;
-    sql_int64 species_id;
+    sql_text species_id;
     sql_int64 size;
     sql_text caught_at;
     sql_text bait;
@@ -117,9 +117,8 @@ typedef struct {
 } Competitor;
 
 typedef struct {
-    sql_int64 id;
+    sql_text id;
     sql_text name;
-    sql_text slug;
     sql_text scientific_name;
     sql_text common_names;
     sql_text photo_url;

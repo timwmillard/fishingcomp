@@ -1,4 +1,7 @@
 
+pragma foreign_keys = 1;
+pragma journal_mode = 'wal';
+
 -- Boat
 create table if not exists boat (
     id integer primary key,
@@ -24,22 +27,25 @@ create table if not exists competitor (
 
 -- Species
 create table if not exists species (
-    id integer primary key,
+    id text not null primary key,
     name text not null,
-    slug text not null,
     scientific_name text not null default '',
     common_names text not null default '',
     photo_url text not null default '',
     type text check (type in ('native', 'introduced')) not null default 'native',
-    unique(name),
-    unique(slug)
+    unique(name)
 );
+
+insert into species (id, name, scientific_name, common_names, type) values
+('murraycod', 'Murray Cod', 'Maccullochella peelii', 'Murray cod', 'native'),
+('yellowbelly', 'Yellowbelly', 'Macquaria ambigua', 'Golden perch,Yellowbelly', 'native'),
+('carp', 'Carp', 'Cyprinidae', 'Carp', 'introduced') on conflict do nothing;
 
 -- Catch
 create table if not exists catch (
     id integer primary key,
     competitor_id integer not null references competitor(id),
-    species_id integer not null references species(id),
+    species_id text not null references species(id),
     size integer not null check (size > 0),
     caught_at timestamptz not null,
     bait text not null default '',
