@@ -28,7 +28,6 @@ static struct {
 static struct {
     // GUI
     bool show_competitors;
-    bool competitor_edit;
 
     bool show_boats;
 
@@ -50,10 +49,13 @@ void on_get_competitor(Competitor* comp, void* ctx) {
 }
 
 void refresh_data() {
+    if (!db) return;
     data.competitor_id = 1;
     int rc = get_competitor(db, data.competitor_id, on_get_competitor, NULL);
 }
+
 void save_data() {
+    if (!db) return;
     UpdateCompetitorParams params = {
         .first_name.data = (sql_byte*)data.competitor.first_name,
         .first_name.len = strlen(data.competitor.first_name), 
@@ -166,36 +168,59 @@ void ui_window(void)
         window_state.dock_setup_done = true;
     }
 
-    // Business Details Window
+    // Competitors Window
     if (window_state.show_competitors) {
+        static bool edit_mode = false;
         if (igBegin("Competitors", &window_state.show_competitors, ImGuiWindowFlags_None)) {
-            if (igButton("Edit", (ImVec2){80, 0})) {
-                window_state.competitor_edit = !window_state.competitor_edit;
+
+            static int selected = 0;
+            // Left panel
+            {
+                igBeginChild_Str("left pane", (ImVec2){150, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX, 0);
+                    for (int i = 0; i < 100; i++)
+                    {
+                        char label[128];
+                        sprintf(label, "MyObject %d", i);
+                        if (igSelectable_Bool(label, selected == i, ImGuiSelectableFlags_SelectOnNav, (ImVec2){0, 0}))
+                            selected = i;
+                    }
+                igEndChild();
             }
 
-            int flags = ImGuiInputTextFlags_None;
-            if (!window_state.competitor_edit) flags |= ImGuiInputTextFlags_ReadOnly;
+            igSameLine(0, 0);
 
-            igText("Competitor No. %d", data.competitor.id);
-            igText("First name");
-            igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, flags, NULL, NULL);
-            igText("Last name");
-            igInputText("##last_name", data.competitor.last_name, MAX_STR_LEN, flags, NULL, NULL);
+            // Right panel
+            {
+                igBeginGroup();
+                igBeginChild_Str("item view", (ImVec2){0, -igGetFrameHeightWithSpacing()}, 0, 0); // Leave room for 1 line below us
+                if (igButton("Edit", (ImVec2){80, 0})) {
+                    edit_mode = !edit_mode;
+                }
 
-            igSeparator();
-            
-            if (window_state.competitor_edit) {
-                if (igButton("Save", (ImVec2){80, 0})) {
-                    save_data();
-                    window_state.competitor_edit = false;
+                int flags = ImGuiInputTextFlags_None;
+                if (!edit_mode) flags |= ImGuiInputTextFlags_ReadOnly;
+
+                igText("Competitor No. %d", data.competitor.id);
+                igText("First name");
+                igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, flags, NULL, NULL);
+                igText("Last name");
+                igInputText("##last_name", data.competitor.last_name, MAX_STR_LEN, flags, NULL, NULL);
+
+                igSeparator();
+                igEndChild();
+                
+                if (edit_mode) {
+                    if (igButton("Save", (ImVec2){80, 0})) {
+                        save_data();
+                        edit_mode = false;
+                    }
+                    igSameLine(0, -1);
+                    if (igButton("Reset", (ImVec2){80, 0})) {
+                        refresh_data();
+                    }
                 }
-                igSameLine(0, -1);
-                if (igButton("Reset", (ImVec2){80, 0})) {
-                    refresh_data();
-                    // if (state.db)
-                    //     db_get_business(state.db, &state.business);
-                    // // state.show_business = false;
-                }
+                igSameLine(0, 0);
+                igEndGroup();
             }
         }
         igEnd();
@@ -207,3 +232,44 @@ void ui_window(void)
     }
 }
 
+// // Left
+// static int selected = 0;
+// {
+//     ImGui::BeginChild("left pane", ImVec2(150, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
+//     for (int i = 0; i < 100; i++)
+//     {
+//         char label[128];
+//         sprintf(label, "MyObject %d", i);
+//         if (ImGui::Selectable(label, selected == i, ImGuiSelectableFlags_SelectOnNav))
+//             selected = i;
+//     }
+//     ImGui::EndChild();
+// }
+// ImGui::SameLine();
+//
+// // Right
+// {
+//     ImGui::BeginGroup();
+//     ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
+//     ImGui::Text("MyObject: %d", selected);
+//     ImGui::Separator();
+//     if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
+//     {
+//         if (ImGui::BeginTabItem("Description"))
+//         {
+//             ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
+//             ImGui::EndTabItem();
+//         }
+//         if (ImGui::BeginTabItem("Details"))
+//         {
+//             ImGui::Text("ID: 0123456789");
+//             ImGui::EndTabItem();
+//         }
+//         ImGui::EndTabBar();
+//     }
+//     ImGui::EndChild();
+//     if (ImGui::Button("Revert")) {}
+//     ImGui::SameLine();
+//     if (ImGui::Button("Save")) {}
+//     ImGui::EndGroup();
+// }
