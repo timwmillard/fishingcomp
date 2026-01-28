@@ -159,6 +159,8 @@ void ui_window(void)
             igText("Competitor %d", data.competitor.id);
             igText("First name");
             igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, ImGuiInputTextFlags_None, NULL, NULL);
+            igText("Last name");
+            igInputText("##last_name", data.competitor.last_name, MAX_STR_LEN, ImGuiInputTextFlags_None, NULL, NULL);
 
             igSeparator();
 
