@@ -76,9 +76,9 @@ void ui_reset_layout(ImGuiID dockspace_id)
     igDockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
     igDockBuilderSetNodeSize(dockspace_id, igGetMainViewport()->Size);
 
-    igDockBuilderDockWindow("Competitors Details", dockspace_id);
-    // igDockBuilderDockWindow("Boat Details", dockspace_id);
-    // igDockBuilderDockWindow("Catch Details", dockspace_id);
+    igDockBuilderDockWindow("Competitors", dockspace_id);
+    // igDockBuilderDockWindow("Boats", dockspace_id);
+    // igDockBuilderDockWindow("Catches", dockspace_id);
     igDockBuilderFinish(dockspace_id);
 }
 
@@ -168,9 +168,9 @@ void ui_window(void)
 
     // Business Details Window
     if (window_state.show_competitors) {
-        if (igBegin("Competitors Details", &window_state.show_competitors, ImGuiWindowFlags_None)) {
+        if (igBegin("Competitors", &window_state.show_competitors, ImGuiWindowFlags_None)) {
             if (igButton("Edit", (ImVec2){80, 0})) {
-                window_state.competitor_edit = true;
+                window_state.competitor_edit = !window_state.competitor_edit;
             }
 
             int flags = ImGuiInputTextFlags_None;
@@ -183,18 +183,19 @@ void ui_window(void)
             igInputText("##last_name", data.competitor.last_name, MAX_STR_LEN, flags, NULL, NULL);
 
             igSeparator();
-
-            if (igButton("Save", (ImVec2){80, 0})) {
-                save_data();
-                // if (state.db)
-                //     db_save_business(state.db, &state.business);
-            }
-            igSameLine(0, -1);
-            if (igButton("Reset", (ImVec2){80, 0})) {
-                refresh_data();
-                // if (state.db)
-                //     db_get_business(state.db, &state.business);
-                // // state.show_business = false;
+            
+            if (window_state.competitor_edit) {
+                if (igButton("Save", (ImVec2){80, 0})) {
+                    save_data();
+                    window_state.competitor_edit = false;
+                }
+                igSameLine(0, -1);
+                if (igButton("Reset", (ImVec2){80, 0})) {
+                    refresh_data();
+                    // if (state.db)
+                    //     db_get_business(state.db, &state.business);
+                    // // state.show_business = false;
+                }
             }
         }
         igEnd();
