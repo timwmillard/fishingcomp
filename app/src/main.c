@@ -15,6 +15,17 @@
 void ui_window(void);
 void refresh_data();
 
+// Clipboard callbacks for ImGui
+static const char* imgui_get_clipboard(ImGuiContext* ctx) {
+    (void)ctx;
+    return sapp_get_clipboard_string();
+}
+
+static void imgui_set_clipboard(ImGuiContext* ctx, const char* text) {
+    (void)ctx;
+    sapp_set_clipboard_string(text);
+}
+
 static struct {
     sg_pass_action pass_action;
 } state = {0};
@@ -77,6 +88,11 @@ void init(void)
     ImGuiIO* io = igGetIO_Nil();
     io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+    // Set up clipboard callbacks
+    ImGuiPlatformIO* pio = igGetPlatformIO_Nil();
+    pio->Platform_GetClipboardTextFn = imgui_get_clipboard;
+    pio->Platform_SetClipboardTextFn = imgui_set_clipboard;
+
     // Use cimgui constructor to get properly initialized config
     ImFontConfig* font_cfg = ImFontConfig_ImFontConfig();
 
@@ -129,5 +145,7 @@ sapp_desc sokol_main(int argc, char *argv[])
         .width = 800,
         .height = 600,
         .window_title = "Fishing Comp",
+        .enable_clipboard = true,
+        .clipboard_size = 8192,
     };
 }
