@@ -18,9 +18,11 @@ extern sqlite3 *db;
 
 static struct {
     struct {
+        int id;
         char first_name[MAX_STR_LEN];
         char last_name[MAX_STR_LEN];
     } competitor;
+    int competitor_id;
 } data = {0};
 
 static struct {
@@ -40,11 +42,13 @@ static void copy_sql_text(char *dst, size_t dst_size, sql_text src) {
 }
 
 void on_get_competitor(Competitor* comp, void* ctx) {
+    data.competitor.id = comp->id;
     copy_sql_text(data.competitor.first_name, MAX_STR_LEN, comp->first_name);
     copy_sql_text(data.competitor.last_name, MAX_STR_LEN, comp->last_name);
 }
 
 void refresh_data() {
+    data.competitor_id = 1;
     int rc = get_competitor(db, 1, on_get_competitor, NULL);
 }
 
@@ -152,8 +156,8 @@ void ui_window(void)
     // Business Details Window
     if (window_state.show_competitors) {
         if (igBegin("Competitors Details", &window_state.show_competitors, ImGuiWindowFlags_None)) {
-            igText("Please enter your business name:");
-            igText("Competitor: %s", data.competitor.first_name);
+            igText("Competitor %d", data.competitor.id);
+            igText("First name");
             igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, ImGuiInputTextFlags_None, NULL, NULL);
 
             igSeparator();
