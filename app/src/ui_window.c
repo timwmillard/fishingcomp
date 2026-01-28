@@ -174,40 +174,44 @@ void ui_window(void)
         if (igBegin("Competitors", &window_state.show_competitors, ImGuiWindowFlags_None)) {
 
             static int selected = 0;
+            static char search[256] = {0};
             // Left panel
             {
                 igBeginChild_Str("left pane", (ImVec2){150, 0}, ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX, 0);
+                igText("Search:");
+                igInputText("##serach", search, MAX_STR_LEN, 0, NULL, NULL);
+                igSeparator();
                     for (int i = 0; i < 100; i++)
                     {
                         char label[128];
                         sprintf(label, "MyObject %d", i);
-                        if (igSelectable_Bool(label, selected == i, ImGuiSelectableFlags_SelectOnNav, (ImVec2){0, 0}))
+                        if (igSelectable_Bool(label, selected == i, ImGuiSelectableFlags_SelectOnNav, (ImVec2){0, 0})) {
                             selected = i;
+                            edit_mode = false;
+                        }
                     }
                 igEndChild();
             }
 
-            igSameLine(0, 0);
+            igSameLine(0, -1);
 
             // Right panel
             {
                 igBeginGroup();
                 igBeginChild_Str("item view", (ImVec2){0, -igGetFrameHeightWithSpacing()}, 0, 0); // Leave room for 1 line below us
-                if (igButton("Edit", (ImVec2){80, 0})) {
-                    edit_mode = !edit_mode;
-                }
+                igText("Competitor No. %d", data.competitor.id);
+                igSameLine(0, -1);
+                if (igSmallButton(edit_mode?"Cancel Edit":"Edit")) edit_mode = !edit_mode;
 
-                int flags = ImGuiInputTextFlags_None;
+                int flags = 0;
                 if (!edit_mode) flags |= ImGuiInputTextFlags_ReadOnly;
 
-                igText("Competitor No. %d", data.competitor.id);
                 igText("First name");
                 igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, flags, NULL, NULL);
                 igText("Last name");
                 igInputText("##last_name", data.competitor.last_name, MAX_STR_LEN, flags, NULL, NULL);
 
                 igSeparator();
-                igEndChild();
                 
                 if (edit_mode) {
                     if (igButton("Save", (ImVec2){80, 0})) {
@@ -219,7 +223,7 @@ void ui_window(void)
                         refresh_data();
                     }
                 }
-                igSameLine(0, 0);
+                igEndChild();
                 igEndGroup();
             }
         }
@@ -232,44 +236,3 @@ void ui_window(void)
     }
 }
 
-// // Left
-// static int selected = 0;
-// {
-//     ImGui::BeginChild("left pane", ImVec2(150, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
-//     for (int i = 0; i < 100; i++)
-//     {
-//         char label[128];
-//         sprintf(label, "MyObject %d", i);
-//         if (ImGui::Selectable(label, selected == i, ImGuiSelectableFlags_SelectOnNav))
-//             selected = i;
-//     }
-//     ImGui::EndChild();
-// }
-// ImGui::SameLine();
-//
-// // Right
-// {
-//     ImGui::BeginGroup();
-//     ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
-//     ImGui::Text("MyObject: %d", selected);
-//     ImGui::Separator();
-//     if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
-//     {
-//         if (ImGui::BeginTabItem("Description"))
-//         {
-//             ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
-//             ImGui::EndTabItem();
-//         }
-//         if (ImGui::BeginTabItem("Details"))
-//         {
-//             ImGui::Text("ID: 0123456789");
-//             ImGui::EndTabItem();
-//         }
-//         ImGui::EndTabBar();
-//     }
-//     ImGui::EndChild();
-//     if (ImGui::Button("Revert")) {}
-//     ImGui::SameLine();
-//     if (ImGui::Button("Save")) {}
-//     ImGui::EndGroup();
-// }
