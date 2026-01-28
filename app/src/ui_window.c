@@ -53,9 +53,15 @@ void refresh_data() {
 }
 void save_data() {
     UpdateCompetitorParams params = {
+        .first_name.data = (sql_byte*)data.competitor.first_name,
+        .first_name.len = strlen(data.competitor.first_name), 
+
+        .last_name.data = (sql_byte*)data.competitor.last_name,
+        .last_name.len = strlen(data.competitor.last_name), 
+        .id = data.competitor_id,
     };
-    update_competitor(db, &params, NULL, NULL);
-    int rc = get_competitor(db, 1, on_get_competitor, NULL);
+    int rc = update_competitor(db, &params, NULL, NULL);
+    refresh_data();
 }
 
 
@@ -69,9 +75,8 @@ void ui_reset_layout(ImGuiID dockspace_id)
     igDockBuilderSetNodeSize(dockspace_id, igGetMainViewport()->Size);
 
     igDockBuilderDockWindow("Competitors Details", dockspace_id);
-    // igDockBuilderDockWindow("Chart of Accounts", dockspace_id);
-    // igDockBuilderDockWindow("General Ledger", dockspace_id);
-    // igDockBuilderDockWindow("Dear ImGui Demo", dockspace_id);
+    // igDockBuilderDockWindow("Boat Details", dockspace_id);
+    // igDockBuilderDockWindow("Catch Details", dockspace_id);
     igDockBuilderFinish(dockspace_id);
 }
 
@@ -164,18 +169,20 @@ void ui_window(void)
         if (igBegin("Competitors Details", &window_state.show_competitors, ImGuiWindowFlags_None)) {
             igText("Competitor No. %d", data.competitor.id);
             igText("First name");
-            igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, ImGuiInputTextFlags_None, NULL, NULL);
+            igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, ImGuiInputTextFlags_None|ImGuiInputTextFlags_ReadOnly, NULL, NULL);
             igText("Last name");
             igInputText("##last_name", data.competitor.last_name, MAX_STR_LEN, ImGuiInputTextFlags_None, NULL, NULL);
 
             igSeparator();
 
             if (igButton("Save", (ImVec2){80, 0})) {
+                save_data();
                 // if (state.db)
                 //     db_save_business(state.db, &state.business);
             }
             igSameLine(0, -1);
             if (igButton("Reset", (ImVec2){80, 0})) {
+                refresh_data();
                 // if (state.db)
                 //     db_get_business(state.db, &state.business);
                 // // state.show_business = false;
