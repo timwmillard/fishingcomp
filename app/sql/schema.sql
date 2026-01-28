@@ -54,7 +54,7 @@ create table if not exists catch (
 );
 
 -- create type catch_review_status as enum (
---     'submitted',
+--     'pending',
 --     'approved',
 --     'rejected'
 -- );
@@ -69,25 +69,18 @@ create table if not exists catch (
 --   bait text not null default '',
 --   location_name text not null default '',
 --   location point,
---   photo_url text,
---   submitter_user_id uuid,  -- references auth.users(id),
+--   photo text, -- or blob?
+--   submitter text,
 --   submitted_at timestamptz default now(),
---   reviewer_user_id uuid, -- references auth.users(id),
---   reviewer_comment text not null default '',
+--   reviewer text,
+--   reviewer_comment text,
 --   reviewed_at timestamptz,
 --   status catch_review_status not null default 'submitted' check (
---       (status = 'submitted' and catch_id is null) or
+--       (status = 'pending' and catch_id is null) or
 --       (status = 'approved' and catch_id is not null and reviewer_user_id is not null) or
 --       (status = 'rejected' and catch_id is null and reviewer_user_id is not null)
 --                                                                         ),
---   catch_id integer references catch(id) check (status = 'approved')
+--   catch_id integer references catch(id) check (status = 'approved'),
+--   created_at timestamptz default now()
 -- );
---
--- -- Catch Photo
--- create table catch_photo (
---     id integer primary key,
---     catch_id integer references catch(id),
---     storage_id text not null check (storage_id <> ''),
---     url text not null default '',
---     is_feature timestamptz
--- );
+
