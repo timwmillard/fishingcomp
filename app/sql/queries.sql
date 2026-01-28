@@ -15,6 +15,13 @@ insert into competitor (
 ) values ( ?, ?, ?)
 returning id, first_name, last_name;
 
+--name: UpdateCompetitor :one
+update competitor
+    set first_name = ?,
+        last_name = ? 
+where id = ? 
+returning *;
+
 -- name: DeleteCompetitor :exec
 delete from competitor
 where id = ?;

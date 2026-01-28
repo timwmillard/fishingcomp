@@ -852,7 +852,7 @@ func (g *Generator) generateOneImpl(q Query, funcName, resultType, sqlStr string
 	// Extract columns
 	g.generateExtractColumns(q.Columns)
 
-	g.implOut.WriteString("        cb(&result, ctx);\n")
+	g.implOut.WriteString("        if (cb) cb(&result, ctx);\n")
 	g.implOut.WriteString("        rc = SQLITE_OK;\n")
 	g.implOut.WriteString("    } else if (rc == SQLITE_DONE) {\n")
 	g.implOut.WriteString("        rc = SQLITE_NOTFOUND;\n")
@@ -894,7 +894,7 @@ func (g *Generator) generateManyImpl(q Query, funcName, resultType, sqlStr strin
 	// Extract columns
 	g.generateExtractColumns(q.Columns)
 
-	g.implOut.WriteString("        cb(&result, ctx);\n")
+	g.implOut.WriteString("        if (cb) cb(&result, ctx);\n")
 	g.implOut.WriteString("    }\n\n")
 
 	g.implOut.WriteString("    sqlite3_finalize(stmt);\n")

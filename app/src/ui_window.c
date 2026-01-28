@@ -49,6 +49,12 @@ void on_get_competitor(Competitor* comp, void* ctx) {
 
 void refresh_data() {
     data.competitor_id = 1;
+    int rc = get_competitor(db, data.competitor_id, on_get_competitor, NULL);
+}
+void save_data() {
+    UpdateCompetitorParams params = {
+    };
+    update_competitor(db, &params, NULL, NULL);
     int rc = get_competitor(db, 1, on_get_competitor, NULL);
 }
 
@@ -156,7 +162,7 @@ void ui_window(void)
     // Business Details Window
     if (window_state.show_competitors) {
         if (igBegin("Competitors Details", &window_state.show_competitors, ImGuiWindowFlags_None)) {
-            igText("Competitor %d", data.competitor.id);
+            igText("Competitor No. %d", data.competitor.id);
             igText("First name");
             igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, ImGuiInputTextFlags_None, NULL, NULL);
             igText("Last name");

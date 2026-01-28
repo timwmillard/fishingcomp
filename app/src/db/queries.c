@@ -43,7 +43,7 @@ int get_competitor(sqlite3 *db, sql_int64 id, void (*cb)(Competitor*, void*), vo
             result.boat_id.value = sqlite3_column_int64(stmt, 11);
             result.boat_id.null = false;
         } else { result.boat_id.null = true; }
-        cb(&result, ctx);
+        if (cb) cb(&result, ctx);
         rc = SQLITE_OK;
     } else if (rc == SQLITE_DONE) {
         rc = SQLITE_NOTFOUND;
@@ -92,7 +92,7 @@ int list_competitors(sqlite3 *db, void (*cb)(Competitor*, void*), void *ctx) {
             result.boat_id.value = sqlite3_column_int64(stmt, 11);
             result.boat_id.null = false;
         } else { result.boat_id.null = true; }
-        cb(&result, ctx);
+        if (cb) cb(&result, ctx);
     }
 
     sqlite3_finalize(stmt);
@@ -124,7 +124,59 @@ int create_competitor(sqlite3 *db, CreateCompetitorParams *params, void (*cb)(Co
         result.first_name.len = sqlite3_column_bytes(stmt, 1);
         result.last_name.data = (sql_byte*)sqlite3_column_text(stmt, 2);
         result.last_name.len = sqlite3_column_bytes(stmt, 2);
-        cb(&result, ctx);
+        if (cb) cb(&result, ctx);
+        rc = SQLITE_OK;
+    } else if (rc == SQLITE_DONE) {
+        rc = SQLITE_NOTFOUND;
+    }
+    sqlite3_finalize(stmt);
+    return rc;
+}
+
+// UpdateCompetitor :one
+int update_competitor(sqlite3 *db, UpdateCompetitorParams *params, void (*cb)(Competitor*, void*), void *ctx) {
+    const char *sql = "update competitor\n"
+                      "    set first_name = ?,\n"
+                      "        last_name = ? \n"
+                      "where id = ? \n"
+                      "returning *;\n";
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if (rc != SQLITE_OK) return rc;
+
+    sqlite3_bind_text(stmt, 1, (char*)params->first_name.data, params->first_name.len, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, (char*)params->last_name.data, params->last_name.len, SQLITE_STATIC);
+    sqlite3_bind_int64(stmt, 3, params->id);
+
+    rc = sqlite3_step(stmt);
+    if (rc == SQLITE_ROW) {
+        Competitor result = {0};
+        result.id = sqlite3_column_int64(stmt, 0);
+        result.first_name.data = (sql_byte*)sqlite3_column_text(stmt, 1);
+        result.first_name.len = sqlite3_column_bytes(stmt, 1);
+        result.last_name.data = (sql_byte*)sqlite3_column_text(stmt, 2);
+        result.last_name.len = sqlite3_column_bytes(stmt, 2);
+        result.email.data = (sql_byte*)sqlite3_column_text(stmt, 3);
+        result.email.len = sqlite3_column_bytes(stmt, 3);
+        result.mobile.data = (sql_byte*)sqlite3_column_text(stmt, 4);
+        result.mobile.len = sqlite3_column_bytes(stmt, 4);
+        result.phone.data = (sql_byte*)sqlite3_column_text(stmt, 5);
+        result.phone.len = sqlite3_column_bytes(stmt, 5);
+        result.address1.data = (sql_byte*)sqlite3_column_text(stmt, 6);
+        result.address1.len = sqlite3_column_bytes(stmt, 6);
+        result.address2.data = (sql_byte*)sqlite3_column_text(stmt, 7);
+        result.address2.len = sqlite3_column_bytes(stmt, 7);
+        result.suburb.data = (sql_byte*)sqlite3_column_text(stmt, 8);
+        result.suburb.len = sqlite3_column_bytes(stmt, 8);
+        result.state.data = (sql_byte*)sqlite3_column_text(stmt, 9);
+        result.state.len = sqlite3_column_bytes(stmt, 9);
+        result.postcode.data = (sql_byte*)sqlite3_column_text(stmt, 10);
+        result.postcode.len = sqlite3_column_bytes(stmt, 10);
+        if (sqlite3_column_type(stmt, 11) != SQLITE_NULL) {
+            result.boat_id.value = sqlite3_column_int64(stmt, 11);
+            result.boat_id.null = false;
+        } else { result.boat_id.null = true; }
+        if (cb) cb(&result, ctx);
         rc = SQLITE_OK;
     } else if (rc == SQLITE_DONE) {
         rc = SQLITE_NOTFOUND;
