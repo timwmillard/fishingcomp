@@ -1,0 +1,14 @@
+
+.DS_Store
+
+/fishlive
+/cmd/fishlive/fishlive
+
+/tmp
+
+/.env
+/.env.*
+/.env*
+
+cookie.txt
+

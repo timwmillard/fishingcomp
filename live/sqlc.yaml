@@ -1,0 +1,34 @@
+version: "2"
+sql:
+- schema:
+    - "migrations"
+    - "migrations/code/views.sql"
+  queries: "queries"
+  engine: "postgresql"
+  gen:
+    go: 
+      package: "model"
+      sql_package: "pgx/v5"
+      out: "model"
+      overrides:
+        - db_type: "uuid"
+          go_type:
+            import: "github.com/gofrs/uuid/v5"
+            type: "UUID"
+          nullable: false
+        - db_type: "uuid"
+          go_type:
+            import: "github.com/gofrs/uuid/v5"
+            type: "NullUUID"
+          nullable: true
+        - db_type: "pg_catalog.numeric"
+          go_type:
+            import: "github.com/shopspring/decimal"
+            type: "Decimal"
+          nullable: false
+        - db_type: "pg_catalog.numeric"
+          go_type:
+            import: "github.com/shopspring/decimal"
+            type: "NullDecimal"
+          nullable: true
+

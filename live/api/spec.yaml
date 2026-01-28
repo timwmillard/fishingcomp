@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: Fishing Competition
+  description: Fishing Competition Catch Review System
+  version: 0.0.1
+  contact:
+    name: Tim Millard
+    email: tim@murrabitcodchallenge.com.au
+servers:
+  - url: https://live.murrabitcodchallenge.com.au
+    description: Production server
+  - url: http://localhost:6767/v1
+    description: Local dev server
+
+paths:
+  /catch:
+    post:
+      summary: Upload a catch
+      description: Upload a catch photo
+      operationId: createCatchReview
+      tags:
+        - Catches
+      responses:
+        '201':
+          description: Catch Review Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Catch'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Firm not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+components:
+  schemas:
+    Catch:
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+    
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+    
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie for authentication
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+  - SessionAuth: []
+
+tags:
+  - name: Catch
+    description: Fishing Catches
+
