@@ -28,6 +28,8 @@ static struct {
 static struct {
     // GUI
     bool show_competitors;
+    bool competitor_edit;
+
     bool show_boats;
 
     bool show_demo;
@@ -167,11 +169,18 @@ void ui_window(void)
     // Business Details Window
     if (window_state.show_competitors) {
         if (igBegin("Competitors Details", &window_state.show_competitors, ImGuiWindowFlags_None)) {
+            if (igButton("Edit", (ImVec2){80, 0})) {
+                window_state.competitor_edit = true;
+            }
+
+            int flags = ImGuiInputTextFlags_None;
+            if (!window_state.competitor_edit) flags |= ImGuiInputTextFlags_ReadOnly;
+
             igText("Competitor No. %d", data.competitor.id);
             igText("First name");
-            igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, ImGuiInputTextFlags_None|ImGuiInputTextFlags_ReadOnly, NULL, NULL);
+            igInputText("##first_name", data.competitor.first_name, MAX_STR_LEN, flags, NULL, NULL);
             igText("Last name");
-            igInputText("##last_name", data.competitor.last_name, MAX_STR_LEN, ImGuiInputTextFlags_None, NULL, NULL);
+            igInputText("##last_name", data.competitor.last_name, MAX_STR_LEN, flags, NULL, NULL);
 
             igSeparator();
 
