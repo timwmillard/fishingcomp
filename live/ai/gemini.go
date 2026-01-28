@@ -97,31 +97,32 @@ Be specific in your reasoning for invalid catches. For example:
 	}
 
 	part := resp.Candidates[0].Content.Parts[0]
-	if fc, ok := part.(genai.FunctionCall); ok {
-		if fc.Args == nil {
-			return nil, fmt.Errorf("function call has no arguments")
+	fc, ok := part.(genai.FunctionCall)
+	if !ok {
+		// If we got here, the model didn't make a function call.
+		// Log the text response for debugging.
+		if txt, ok := part.(genai.Text); ok {
+			return nil, fmt.Errorf("API returned text instead of a function call: %s", txt)
 		}
 
-		// Convert map[string]interface{} to JSON bytes
-		jsonArgs, err := json.Marshal(fc.Args)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal function call args: %w", err)
-		}
-
-		// Unmarshal JSON into our struct
-		var details CatchDetails
-		if err := json.Unmarshal(jsonArgs, &details); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal args into CatchDetails struct: %w", err)
-		}
-
-		return &details, nil
+		return nil, fmt.Errorf("API response did not contain a function call")
 	}
 
-	// If we got here, the model didn't make a function call.
-	// Log the text response for debugging.
-	if txt, ok := part.(genai.Text); ok {
-		return nil, fmt.Errorf("API returned text instead of a function call: %s", txt)
+	if fc.Args == nil {
+		return nil, fmt.Errorf("function call has no arguments")
 	}
 
-	return nil, fmt.Errorf("API response did not contain a function call")
+	// Convert map[string]interface{} to JSON bytes
+	jsonArgs, err := json.Marshal(fc.Args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal function call args: %w", err)
+	}
+
+	// Unmarshal JSON into our struct
+	var details CatchDetails
+	if err := json.Unmarshal(jsonArgs, &details); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal args into CatchDetails struct: %w", err)
+	}
+
+	return &details, nil
 }

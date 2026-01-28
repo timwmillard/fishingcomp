@@ -12,10 +12,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Assuming ValidateCatchPhoto is in the main package.
-// If you move it to its own package (e.g., 'gemini'), adjust the import path.
-// func ValidateCatchPhoto(ctx context.Context, imageBytes []byte, projectID, location string) (*CatchDetails, error)
-
 // UploadResponse defines the structure of the JSON response.
 type UploadResponse struct {
 	Success bool        `json:"success"`
